@@ -21,7 +21,7 @@ function saveLocal(){
  try{localStorage.setItem(storageKey,JSON.stringify(items))}
  catch(e){message('Local storage is unavailable; your drafts may disappear after refresh.','error')}
 }
-function convertRow(row){return {id:row.id,description:row.description,category:row.category,budget:row.budget||'',timeline:row.timeline,location:row.location||'',createdAt:row.created_at}}
+function convertRow(row){return {id:row.id,description:row.description,category:row.category,budget:row.budget||'',timeline:row.timeline,location:row.location||'',createdAt:row.created_at,status:row.status||'draft'}}
 function record(d){return {description:d.description,category:d.category,budget:d.budget,timeline:d.timeline,location:d.location}}
 function updateMode(){
  const status=$('v10Mode'),account=$('v10AccountButton'),logout=$('v10Logout');
@@ -36,11 +36,12 @@ function card(d,idx){
 function render(){
  $('myNeedsList').innerHTML=items.length?items.map(card).join(''):'<div class="v8-empty">No NEEDs saved yet. Create your first request to see it here.</div>';
  $('myNeedCount').textContent=items.length+' saved draft'+(items.length===1?'':'s');
+ window.NEED_MARKET?.decorateCards?.(items,Boolean(user));
 }
 async function loadCloud(){
  if(!api||!user)return;
  message('Loading your private NEEDs…');
- const {data,error}=await api.from('needs').select('id,description,category,budget,timeline,location,created_at').eq('user_id',user.id).order('created_at',{ascending:false}).limit(100);
+ const {data,error}=await api.from('needs').select('id,description,category,budget,timeline,location,status,created_at').eq('user_id',user.id).order('created_at',{ascending:false}).limit(100);
  if(error){message('Could not load account drafts: '+error.message,'error');return}
  items=(data||[]).map(convertRow);render();updateMode();
 }
@@ -167,6 +168,8 @@ if(api){
   if(data?.user?.id!==user?.id){user=data?.user||null;items=[];render();updateMode();if(user)await loadCloud()}
  }).catch(e=>message('Could not check your account: '+e.message,'error'));
 }
-window.NEED_AUTH={getClient:()=>api,getUser:()=>user};
+window.NEED_AUTH={getClient:()=>api,getUser:()=>user,refreshNeeds:()=>loadCloud()};
+window.dispatchEvent(new Event('need:auth-changed'));
+
 updateMode();render();
 })();
