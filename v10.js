@@ -31,7 +31,7 @@ function updateMode(){
  $('v10StorageCaption').textContent=user?'Private cloud drafts · only visible to this account':'Local drafts · saved only in this browser';
 }
 function card(d,idx){
- return '<article class="v8-request"><div class="v8-request-top"><span class="v8-chip">'+escapeHTML(d.category)+'</span><span class="v8-smallprint">Private draft</span></div><h3>'+escapeHTML(d.description.length>100?d.description.slice(0,100)+'…':d.description)+'</h3><p>'+escapeHTML(d.description.length>230?d.description.slice(0,230)+'…':d.description)+'</p><div class="v8-request-meta"><span>'+escapeHTML(d.budget||'Budget open')+'</span><span>'+escapeHTML(d.timeline)+'</span>'+(d.location?'<span>'+escapeHTML(d.location)+'</span>':'')+'</div><div class="v8-actions" style="margin-top:16px"><button class="v8-btn-lite" type="button" data-action="edit" data-index="'+idx+'">Edit</button><button class="v8-btn-lite" type="button" data-action="remove" data-index="'+idx+'">Remove</button></div></article>';
+ return '<article class="v8-request"><div class="v8-request-top"><span class="v8-chip">'+escapeHTML(d.category)+'</span><span class="v8-smallprint">Private draft</span></div><h3>'+escapeHTML(d.description.length>100?d.description.slice(0,100)+'…':d.description)+'</h3><p>'+escapeHTML(d.description.length>230?d.description.slice(0,230)+'…':d.description)+'</p><div class="v8-request-meta"><span>'+escapeHTML(d.budget||'Budget open')+'</span><span>'+escapeHTML(d.timeline)+'</span>'+(d.location?'<span>'+escapeHTML(d.location)+'</span>':'')+'</div><div class="v8-actions" style="margin-top:16px"><button class="v8-btn-lite" type="button" data-action="view" data-index="'+idx+'">View details</button><button class="v8-btn-lite" type="button" data-action="edit" data-index="'+idx+'">Edit</button><button class="v8-btn-lite" type="button" data-action="remove" data-index="'+idx+'">Remove</button></div></article>';
 }
 function render(){
  $('myNeedsList').innerHTML=items.length?items.map(card).join(''):'<div class="v8-empty">No NEEDs saved yet. Create your first request to see it here.</div>';
@@ -88,6 +88,16 @@ $('myNeedsList').addEventListener('click',async e=>{
  const btn=e.target.closest('button[data-action]');if(!btn)return;
  const idx=Number(btn.dataset.index);const d=items[idx];if(!d)return;
  if(btn.dataset.action==='remove')await removeItem(idx);
+ else if(btn.dataset.action==='view'){
+  $('v11DetailTitle').textContent=d.description.length>95?d.description.slice(0,95)+'…':d.description;
+  $('v11DetailText').textContent=d.description;
+  $('v11DetailCategory').textContent=d.category;
+  $('v11DetailBudget').textContent=d.budget||'Not specified';
+  $('v11DetailTimeline').textContent=d.timeline;
+  $('v11DetailLocation').textContent=d.location||'Not specified';
+  $('v11DetailModal').hidden=false;document.body.style.overflow='hidden';
+  $('v11DetailEdit').onclick=()=>{ $('v11DetailModal').hidden=true;document.body.style.overflow='';openWizard(d.description,d.category);fields.budget.value=d.budget;fields.timeline.value=d.timeline;fields.location.value=d.location||'';wizard.dataset.editing=String(idx)};
+ }
  else{openWizard(d.description,d.category);fields.budget.value=d.budget;fields.timeline.value=d.timeline;fields.location.value=d.location||'';wizard.dataset.editing=String(idx)}
 });
 $('createNeedBtn').addEventListener('click',()=>{wizard.dataset.editing='';openWizard($('needText').value.trim())});
@@ -120,6 +130,8 @@ $('v8Next').addEventListener('click',async()=>{
 });
 $('v8Close').addEventListener('click',closeWizard);
 wizard.addEventListener('click',e=>{if(e.target===wizard)closeWizard()});
+$('v11DetailClose').addEventListener('click',()=>{$('v11DetailModal').hidden=true;document.body.style.overflow=''});
+$('v11DetailModal').addEventListener('click',e=>{if(e.target.id==='v11DetailModal'){$('v11DetailModal').hidden=true;document.body.style.overflow=''}});
 $('v10AccountButton').addEventListener('click',openAuth);
 $('v10AuthClose').addEventListener('click',closeAuth);
 authModal.addEventListener('click',e=>{if(e.target===authModal)closeAuth()});
