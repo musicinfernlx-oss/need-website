@@ -59,7 +59,7 @@ const safe=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;
 let showAlternatives=false;
 function scoredItems(){
  const g=group();
- return g.items.map((item,index)=>({item,index,score:item.tags.includes(state.priority)?2:0}))
+ return g.items.map((item,index)=>({item,index,score:(window.NEED_V12?.rank(item,state.priority,window.NEED_V12.current)||0)}))
  .sort((a,b)=>b.score-a.score||a.index-b.index);
 }
 function itemList(){return scoredItems().map(x=>x.item)}
@@ -86,7 +86,10 @@ function render(){
  $('v11SuggestionCount').textContent=matched.length?'Recommended for '+state.priority:'Explore your options';
  $('v11Suggestions').innerHTML=visible.map((it,i)=>{
  const isTop=i===0;
- return '<article class="v11-suggestion '+(isTop?'v11-best':'')+'"><div class="v11-sug-top"><div class="v11-icon" aria-hidden="true">'+(state.category==='tech'?'T':state.category==='home'?'H':state.category==='style'?'M':'E')+'</div><div><span class="v11-small">'+(isTop?'✦ BEST STARTING POINT':'ALTERNATIVE')+' · '+safe(it.type)+'</span><h3>'+safe(it.name)+'</h3></div></div><p>'+safe(it.desc)+'</p><div class="v11-feature-row">'+it.features.map(t=>'<span>'+safe(t)+'</span>').join('')+'</div><div class="v11-sug-bottom"><span class="v11-budget">'+safe(it.budget)+' <small>guide only</small></span><button type="button" class="v11-sug-btn" data-v11-choose="'+i+'">Request this ↗</button></div></article>';
+ const sourceIndex=g.items.indexOf(it);
+ const image=window.NEED_V12?.photoFor?.(g.id,sourceIndex)||'';
+ const photo='<div class="v12-product-photo" aria-label="Illustrative product photography"><img loading="lazy" decoding="async" src="'+safe(image)+'" alt="Illustrative '+safe(it.name)+' photography" onerror="this.parentNode.classList.add(\'v12-fallback\');this.remove()"><span class="v12-image-fallback">'+safe(g.name.slice(0,1))+'</span><span class="v12-photo-tag">INSPIRATION PHOTO</span></div>';
+ return '<article class="v11-suggestion '+(isTop?'v11-best':'')+'">'+photo+'<div class="v12-suggestion-content"><div class="v11-sug-top"><div><span class="v11-small">'+(isTop?'✦ RECOMMENDED DIRECTION':'EXPLORE ANOTHER DIRECTION')+' · '+safe(it.type)+'</span><h3>'+safe(it.name)+'</h3></div></div><p>'+safe(it.desc)+'</p><div class="v11-feature-row">'+it.features.map(t=>'<span>'+safe(t)+'</span>').join('')+'</div><div class="v11-sug-bottom"><span class="v11-budget">'+safe(it.budget)+' <small>illustrative range, not a live price</small></span><button type="button" class="v11-sug-btn" data-v11-choose="'+i+'">Request this ↗</button></div></div></article>';
  }).join('');
  const alternatives=$('v11Alternatives');
  if(alternatives){
@@ -96,31 +99,34 @@ function render(){
  }
 }
 function startNeed(it){
- const c=catalog[state.category],g=group();
- const location=state.category==='home'?'Location: to be specified. ':'';
- const description='I am looking for '+it.name.toLowerCase()+'. '+it.desc+' My main priority is '+state.priority+'. '+location+'Please suggest options that suit my needs.';
+ const c=catalog[state.category];
+ const description=window.NEED_V12?.prepareDraft?.(it.name,it.desc,state.priority)||'I am looking for '+it.name.toLowerCase()+'. '+it.desc+' My main priority is '+state.priority+'. Please suggest options that suit my needs.';
  $('needText').value=description;
- // The existing NEED V10 wizard handles saving to local drafts or Supabase.
  $('createNeedBtn').click();
  const form=$('v8Dialog');
  if(form?.classList.contains('open')){
   const cat=$('v8Category');if(cat)cat.value=c.title;
-  const budget=$('v8Budget');if(budget&&it.budget.includes('€'))budget.placeholder=it.budget+' (example range, not a quote)';
+  const budget=$('v8Budget');if(budget&&window.NEED_V12?.current?.budget)budget.value='€'+window.NEED_V12.current.budget;
+  else if(budget&&it.budget.includes('€'))budget.placeholder=it.budget+' (illustrative range, not a quote)';
+  const timeline=$('v8Timeline');if(timeline&&window.NEED_V12?.current?.urgency)timeline.value=window.NEED_V12.current.urgency;
  }
  panel.hidden=true;
 }
+function applyAnalysis(a){
+ if(!a)return;
+ const cat=catalog[a.category]?a.category:'tech';
+ showCategory(cat);
+ if(catalog[cat].groups.some(g=>g.id===a.group))state.group=a.group;
+ if(group().options.includes(a.priority))state.priority=a.priority;
+ showAlternatives=false;render();
+}
+window.NEED_GUIDE={applyAnalysis,showCategory};
 function suggestFromText(){
- const text=$('needText').value.toLowerCase().trim();
- if(!text){$('needText').focus();$('needText').placeholder='Describe your idea first, then tap Suggest options…';return;}
- let cat='tech',groupId='laptop',priority='Work & everyday';
- if(/renovat|remont|bathroom|kitchen|house|roof|paint|plumb|electrical|clean/.test(text)){cat='home';groupId=/roof|paint|plumb|electrical|repair|clean/.test(text)?'repairs':'reno';priority=groupId==='repairs'?(/roof/.test(text)?'Roof maintenance':/paint/.test(text)?'Painting':'Plumbing'):'Modern look'}
- else if(/trip|travel|flight|vacation|holiday|hotel|resort|getaway/.test(text)){cat='travel';groupId='trips';priority=/family|kid|children/.test(text)?'Family-friendly':/adventure|hike/.test(text)?'Adventure':'Relaxing escape'}
- else if(/bike|bicycle|scooter|sneaker|shoe|fashion|clothing|style/.test(text)){cat='style';groupId=/shoe|sneaker|fashion|clothing|style/.test(text)?'fashion':'bikes';priority=groupId==='fashion'?'Everyday comfort':'City commuting'}
- else if(/headphon|audio|speaker|music|studio|headset|earbud/.test(text)){cat='tech';groupId='audio';priority=/studio|music|production/.test(text)?'Studio & music':/gaming|game/.test(text)?'Gaming':'Commuting'}
- else if(/phone|smartphone|mobile|iphone|android/.test(text)){cat='tech';groupId='phone';priority=/photo|camera|video/.test(text)?'Camera':/battery/.test(text)?'Battery':'Performance'}
- else if(/gaming|game|gpu|graphics/.test(text)){cat='tech';groupId='laptop';priority='Gaming'}
- else if(/edit|design|music|render|production/.test(text)){cat='tech';groupId='laptop';priority='Creative production'}
- showCategory(cat);state.group=groupId;state.priority=priority;showAlternatives=false;render();
+ const text=$('needText').value.trim();
+ if(text.length<6){$('needText').focus();$('needText').placeholder='Describe your idea first, then tap Suggest options…';return}
+ const engine=window.NEED_V12;
+ if(engine){const analysis=engine.analyze(text);engine.setAnalysis(analysis);applyAnalysis(analysis);return}
+ showCategory('tech');
 }
 $('v11SuggestBtn')?.addEventListener('click',suggestFromText);
 function genericNeed(){
