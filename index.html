@@ -223,6 +223,78 @@ textarea.v8-field{min-height:130px;resize:vertical}
 .v10-account-btn,.v10-signout{padding:10px 12px}
 .v10-auth-panel{padding:19px;border-radius:23px}
 }
+
+/* NEED V11: interactive category showroom layered into original V9 identity */
+.v11-explorer[hidden],.v11-business-modal[hidden]{display:none!important}
+.v11-explorer{padding:20px 0 28px;scroll-margin-top:85px}
+.v11-stage{background:linear-gradient(150deg,#fff,#f9f7ff 65%,#f1effc);border:1px solid #e6def4;box-shadow:0 20px 55px #4b37831c;border-radius:28px;padding:26px}
+.v11-top{display:flex;align-items:flex-start;justify-content:space-between;gap:20px}
+.v11-top h2{font-size:clamp(1.8rem,4.5vw,3rem);letter-spacing:-.06em;line-height:1.04;margin:6px 0 9px}
+.v11-top p{margin:0 0 18px;color:#766e88;line-height:1.5;max-width:660px}
+.v11-close{flex:0 0 auto;display:grid;place-items:center;border:0;background:#f0ebfa;color:#634c94;border-radius:50%;width:38px;height:38px;font-size:1.45rem}
+.v11-tabs{display:flex;flex-wrap:wrap;gap:8px;border-bottom:1px solid #e8e0f2;padding-bottom:17px}
+.v11-tab,.v11-type,.v11-priority{border:1px solid #e7e1f2;background:white;border-radius:999px;padding:11px 16px;font-size:.85rem;font-weight:800;color:#6f648a;transition:.18s}
+.v11-tab.active,.v11-type.active,.v11-priority.active{background:#7558dc;color:white;border-color:#7558dc;box-shadow:0 8px 18px #7b5dd32b}
+.v11-config{display:grid;grid-template-columns:minmax(0,.74fr) minmax(0,1.26fr);gap:27px;padding-top:22px}
+.v11-config-left{padding:10px 15px 10px 0;border-right:1px solid #e7e0f3}
+.v11-label{display:block;font-size:.76rem;letter-spacing:.09em;text-transform:uppercase;font-weight:900;color:#8161ca;margin:0 0 12px}
+.v11-types{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px}
+.v11-type{display:inline-flex;gap:7px;align-items:center;border-radius:15px}
+.v11-priorities{display:flex;flex-wrap:wrap;gap:8px}
+.v11-helper{margin-top:25px;color:#988fa9;font-size:.8rem;line-height:1.55}
+.v11-results-head h3{font-size:1.25rem;letter-spacing:-.035em;margin:0 0 14px}
+.v11-suggestions{display:grid;gap:10px}
+.v11-suggestion{border:1px solid #e8e1f4;background:#fff;border-radius:18px;padding:17px;min-width:0}
+.v11-sug-top{display:flex;align-items:center;gap:12px}
+.v11-icon{width:48px;height:48px;border-radius:14px;background:linear-gradient(150deg,#eee9fd,#dcf0fa);display:grid;place-items:center;font-size:1.5rem;flex-shrink:0}
+.v11-small{font-size:.73rem;font-weight:800;color:#9279cd;text-transform:uppercase;letter-spacing:.06em}
+.v11-suggestion h3{font-size:1.12rem;letter-spacing:-.025em;margin:3px 0}
+.v11-suggestion p{font-size:.87rem;color:#766d8b;line-height:1.53;margin:11px 0}
+.v11-feature-row{display:flex;gap:6px;flex-wrap:wrap}
+.v11-feature-row span{background:#f4f0fc;color:#756097;font-size:.71rem;padding:6px 9px;border-radius:99px}
+.v11-sug-bottom{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:13px}
+.v11-budget{font-size:.77rem;color:#7e728f}
+.v11-sug-btn,.v11-primary{background:linear-gradient(95deg,#785af1,#65bae9);border:0;color:white;border-radius:999px;padding:11px 16px;font-size:.82rem;font-weight:850;cursor:pointer}
+.v11-final{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:16px 0 0}
+.v11-final strong{font-size:.93rem}
+.v11-final p{font-size:.83rem;color:#7f748f;line-height:1.45;margin:4px 0}
+.category-media{cursor:pointer}
+.category-media:focus-visible,.idea:focus-visible{outline:3px solid #8465f6;outline-offset:-3px}
+.category-body h3{cursor:pointer}
+.category-card.v11-selected{outline:2px solid #987aec;outline-offset:2px}
+.idea.v11-clickable{cursor:pointer;transition:transform .2s,box-shadow .2s}
+.idea.v11-clickable:hover{transform:translateY(-3px);box-shadow:0 16px 28px #44307712}
+.business-band .light{cursor:pointer}
+.v11-business-modal{position:fixed;z-index:140;inset:0;background:#291d4991;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:grid;place-items:center;padding:15px}
+.v11-business-dialog{width:min(100%,690px);max-height:90dvh;overflow:auto;background:linear-gradient(160deg,#fff,#f7f4fe);border-radius:27px;padding:26px;box-shadow:0 30px 90px #39265952}
+.v11-business-head{display:flex;align-items:flex-start;justify-content:space-between;gap:15px}
+.v11-business-head h2{font-size:clamp(1.85rem,4vw,2.65rem);letter-spacing:-.05em;line-height:1.02;margin:8px 0 14px}
+.v11-business-dialog>p{color:#716a82;line-height:1.55;font-size:.95rem}
+.v11-business-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:20px 0}
+.v11-business-steps article{background:white;border:1px solid #e6dff3;border-radius:17px;padding:16px}
+.v11-business-steps span{font-size:.7rem;letter-spacing:.07em;font-weight:900;color:#8b6cdc}
+.v11-business-steps h3{margin:10px 0;font-size:1.1rem;letter-spacing:-.03em}
+.v11-business-steps p{font-size:.82rem;line-height:1.5;color:#777084;margin:0}
+.v11-legal{font-size:.8rem!important;color:#8e869d!important}
+@media(max-width:800px){
+.v11-config{grid-template-columns:1fr;gap:12px}
+.v11-config-left{border-right:0;border-bottom:1px solid #e7e0f3;padding:0 0 19px}
+.v11-business-steps{grid-template-columns:1fr}
+}
+@media(max-width:700px){
+.v11-stage{padding:18px;border-radius:22px}
+.v11-tabs{gap:7px}
+.v11-tab{font-size:.75rem;padding:9px 12px}
+.v11-type{padding:10px 12px;font-size:.8rem}
+.v11-priority{font-size:.77rem;padding:9px 12px}
+.v11-config{padding-top:17px}
+.v11-suggestion{padding:15px}
+.v11-final{align-items:stretch;flex-direction:column}
+.v11-primary{padding:13px 16px}
+.v11-business-dialog{padding:19px;border-radius:23px}
+.v11-business-steps{gap:8px}
+.v11-explorer{scroll-margin-top:73px}
+}
 </style></head>
 <body>
 <header class="topbar"><div class="shell topbar-inner"><a class="brand" href="#top" aria-label="NEED home">NEED<span>.</span></a><nav class="nav-actions" aria-label="Navigation"><a href="#explore" class="nav-link desktop">Explore</a><a class="nav-link" href="#my-needs">My NEEDs</a><a class="nav-link border" href="#business">For business ↗</a></nav></div></header>
@@ -241,12 +313,13 @@ textarea.v8-field{min-height:130px;resize:vertical}
 <article class="category-card"><div class="category-media photo-style"><div class="art-fallback"></div><div class="art-overlay"></div></div><div class="category-body"><h3>Mobility & style</h3><p>Bikes, shoes and everyday essentials.</p><button type="button" class="cat-action" data-quick-category="style">Create a NEED ↗</button></div></article>
 <article class="category-card"><div class="category-media photo-travel"><div class="art-fallback"></div><div class="art-overlay"></div></div><div class="category-body"><h3>Travel & experiences</h3><p>Unique stays and memorable moments.</p><button type="button" class="cat-action" data-quick-category="travel">Create a NEED ↗</button></div></article>
 </div></div></section>
+<section id="v11Panel" class="v11-explorer" hidden aria-label="Product and service explorer"><div class="shell"><div class="v11-stage"><div class="v11-top"><div><div class="kicker" id="v11CategoryLabel">Tech & electronics</div><h2 id="v11Title">Find your perfect setup</h2><p id="v11Intro">Explore ideas and create a clear request.</p></div><button id="v11Close" type="button" class="v11-close" aria-label="Close recommendations">×</button></div><div id="v11CategoryNav" class="v11-tabs" aria-label="Categories"></div><div class="v11-config"><div class="v11-config-left"><div class="v11-label">1. What are you looking for?</div><div id="v11Subtypes" class="v11-types"></div><div class="v11-label" id="v11Question">What matters most?</div><div id="v11Priorities" class="v11-priorities"></div><div class="v11-helper">Suggestions are illustrative guides based on your selections. No live products, verified prices or availability are shown.</div></div><div class="v11-config-right"><div class="v11-results-head"><div><span class="v11-label">2. Explore matching ideas</span><h3 id="v11SuggestionCount">3 tailored starting points</h3></div></div><div id="v11Suggestions" class="v11-suggestions"></div><div class="v11-final"><div><strong>Not sure yet?</strong><p>Describe your idea and let NEED turn it into a clear request.</p></div><button id="v11GenericNeed" type="button" class="v11-primary">Create a custom NEED ↗</button></div></div></div></div></div></section>
 <section class="section" id="my-needs"><div class="shell"><div class="board"><div class="board-top"><div><div class="kicker">Your space</div><h2>My NEEDs<span style="color:var(--lav)">.</span></h2><p>Drafts saved on this device.</p></div><div class="v10-board-buttons"><button type="button" id="v10AccountButton" class="v10-account-btn">My account</button><button type="button" id="v10Logout" class="v10-signout" hidden>Sign out</button></div><button id="newRequestBtn" type="button" class="v8-btn">+ New NEED</button></div><div id="v10StatusLine"><span id="v10Mode" class="v10-mode">◦ Local demo</span><span id="v10StorageCaption">Local drafts · saved only in this browser</span></div><div id="v10Info" class="v10-info" aria-live="polite"></div><div id="myNeedCount" class="v8-smallprint" style="margin:0 0 12px"></div><div id="myNeedsList" class="v8-request-grid" aria-live="polite"></div><p class="v8-inline-note">Demo only: drafts stay in this browser and are not sent to sellers or synchronized between devices.</p></div></div></section>
 <section class="section" id="inspiration"><div class="shell"><div class="section-head"><div><div class="kicker">Real needs, endless possibilities</div><h2>Imagine the possibilities.</h2></div><p>Illustrative requests — not live customer listings.</p></div><div class="inspiration"><article class="idea"><span>Home & services</span><h3>Refresh a bathroom</h3><p>Find experts for tiles, lighting and a beautiful new space.</p></article><article class="idea"><span>Tech & electronics</span><h3>Find the perfect laptop</h3><p>Tell sellers the performance and budget that matters to you.</p></article><article class="idea"><span>Travel & experiences</span><h3>Plan the perfect getaway</h3><p>Start with an idea and discover tailored options.</p></article></div></div></section>
 <section class="how-band" id="how"><div class="shell"><div class="how-items"><div class="how-item"><b>01 / ASK</b><strong>Describe your NEED</strong><p>Tell us what you're looking for in your own words.</p></div><div class="how-item"><b>02 / CONNECT</b><strong>Let offers find you</strong><p>Eventually, relevant businesses will be able to respond.</p></div><div class="how-item"><b>03 / CHOOSE</b><strong>Decide on your terms</strong><p>Compare choices without the endless searching.</p></div></div></div></section>
-<section class="section" id="business"><div class="shell"><div class="business-band"><div><div class="kicker" style="color:#bca8f5">For businesses</div><h2>Meet customers who<br>know what they want.</h2><p>NEED is designed to connect real demand with the businesses that can deliver. Seller features are planned for a future release.</p></div><a href="#top" class="light">Discover NEED ↗</a></div></div></section>
+<section class="section" id="business"><div class="shell"><div class="business-band"><div><div class="kicker" style="color:#bca8f5">For businesses</div><h2>Meet customers who<br>know what they want.</h2><p>NEED is designed to connect real demand with the businesses that can deliver. Seller features are planned for a future release.</p></div><button type="button" id="v11BusinessBtn" class="light">Explore business access ↗</button></div></div></section>
 </main>
-<footer class="footer"><div class="shell footer-inner"><div class="brand">NEED<span>.</span></div><div>© 2026 NEED · V10 preview. Accounts and cloud drafts activate after Supabase setup. No live sellers, transactions or AI matching yet.</div></div></footer>
+<footer class="footer"><div class="shell footer-inner"><div class="brand">NEED<span>.</span></div><div>© 2026 NEED · V11 interactive preview. Suggestions are examples, not live listings. Accounts activate after Supabase setup.</div></div></footer>
 <div id="needModal" hidden><button id="closeModalBtn" type="button">Close</button></div>
 <div class="v8-dialog" id="v8Dialog" role="dialog" aria-modal="true" aria-labelledby="v8DialogTitle" aria-hidden="true"><div class="v8-dialog-panel"><div class="v8-dialog-head"><div><span class="v8-eyebrow">CREATE YOUR NEED · V8</span><h2 id="v8DialogTitle">Let's make it happen.</h2></div><button class="v8-close" id="v8Close" aria-label="Close dialog" type="button">×</button></div><div class="v8-progress" id="v8Progress" aria-label="Step 1 of 3"><span class="active"></span><span></span><span></span></div><div class="v8-panel active" data-step="0"><h3>What are you looking for?</h3><p>Describe the product or service in your own words.</p><label class="v8-label" for="v8Description">YOUR NEED</label><textarea class="v8-field" id="v8Description" maxlength="2000" placeholder="E.g. I need a modern bathroom renovation..." required></textarea><label class="v8-label" for="v8Category">CATEGORY</label><select id="v8Category" class="v8-field"><option value="Products & services">Products & services</option><option>Tech & electronics</option><option>Home & services</option><option>Mobility & style</option><option>Travel & experiences</option></select></div><div class="v8-panel" data-step="1"><h3>Make it your own.</h3><p>A few optional details help sellers understand what matters.</p><div class="v8-two"><div><label class="v8-label" for="v8Budget">BUDGET</label><input class="v8-field" id="v8Budget" maxlength="60" placeholder="e.g. €1,500"></div><div><label class="v8-label" for="v8Timeline">WHEN DO YOU NEED IT?</label><select class="v8-field" id="v8Timeline"><option>Flexible</option><option>As soon as possible</option><option>Within 2 weeks</option><option>Within 1 month</option><option>Within 3 months</option></select></div></div><label class="v8-label" for="v8Location">LOCATION (OPTIONAL)</label><input class="v8-field" id="v8Location" maxlength="100" placeholder="e.g. Tampere, Finland or Online"></div><div class="v8-panel" data-step="2"><h3>Ready to save your NEED?</h3><p>Review the details below before saving this request on your device.</p><div id="v8Preview" class="v8-preview"></div><p class="v8-hint">This is a working prototype: clicking save stores a draft only in this browser, not on a public marketplace.</p></div><div id="v8Error" class="v8-error" role="alert"></div><div class="v8-wizard-actions"><button type="button" class="v8-btn-lite" id="v8Back">Cancel</button><button type="button" class="v8-btn" id="v8Next">Continue →</button></div></div></div>
 
@@ -254,4 +327,5 @@ textarea.v8-field{min-height:130px;resize:vertical}
   <script src="config.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
 <script src="v10.js" defer></script>
-<div id="v10AuthModal" class="v10-auth-backdrop" hidden role="dialog" aria-modal="true" aria-labelledby="v10AuthTitle"><div class="v10-auth-panel"><div class="v10-auth-top"><div><span class="v8-eyebrow">NEED V10 · YOUR ACCOUNT</span><h2 id="v10AuthTitle">Your space, everywhere.</h2></div><button type="button" class="v8-close" id="v10AuthClose" aria-label="Close account dialog">×</button></div><p>Save your requests privately and access them on any device. Sign in with a secure link sent to your email.</p><form id="v10AuthForm"><label class="v8-label" for="v10Email">EMAIL ADDRESS</label><input class="v8-field" id="v10Email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" required><button type="submit" class="v10-auth-primary" id="v10AuthSubmit">Email me a sign-in link →</button></form><div id="v10AuthMessage" class="v10-auth-message" role="status" aria-live="polite"></div><div class="v10-note">Private drafts are protected by account-based database rules after Supabase is connected. Public GitHub Pages contains no secret API keys.</div></div></div></body></html>
+<script src="v11.js" defer></script>
+<div id="v10AuthModal" class="v10-auth-backdrop" hidden role="dialog" aria-modal="true" aria-labelledby="v10AuthTitle"><div class="v10-auth-panel"><div class="v10-auth-top"><div><span class="v8-eyebrow">NEED V10 · YOUR ACCOUNT</span><h2 id="v10AuthTitle">Your space, everywhere.</h2></div><button type="button" class="v8-close" id="v10AuthClose" aria-label="Close account dialog">×</button></div><p>Save your requests privately and access them on any device. Sign in with a secure link sent to your email.</p><form id="v10AuthForm"><label class="v8-label" for="v10Email">EMAIL ADDRESS</label><input class="v8-field" id="v10Email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" required><button type="submit" class="v10-auth-primary" id="v10AuthSubmit">Email me a sign-in link →</button></form><div id="v10AuthMessage" class="v10-auth-message" role="status" aria-live="polite"></div><div class="v10-note">Private drafts are protected by account-based database rules after Supabase is connected. Public GitHub Pages contains no secret API keys.</div></div></div><div id="v11Business" class="v11-business-modal" hidden role="dialog" aria-modal="true" aria-labelledby="v11BusinessTitle"><div class="v11-business-dialog"><div class="v11-business-head"><div><div class="kicker">Business access · Preview</div><h2 id="v11BusinessTitle">Better leads. Real intent.</h2></div><button type="button" class="v11-close" id="v11BusinessClose" aria-label="Close business preview">×</button></div><p>In a future NEED marketplace, verified businesses could discover relevant buyer requests and send tailored responses.</p><div class="v11-business-steps"><article><span>01 / DISCOVER</span><h3>See relevant demand</h3><p>Filter buyer requests by category, area and project type.</p></article><article><span>02 / RESPOND</span><h3>Make a tailored offer</h3><p>Show what you can deliver, estimated scope and terms.</p></article><article><span>03 / CONNECT</span><h3>Win on relevance</h3><p>Customers compare offers and choose what fits.</p></article></div><p class="v11-legal">Preview only. Live business registrations, seller profiles and offers are not available yet.</p><button type="button" id="v11BusinessAccount" class="v11-primary">Explore buyer account ↗</button></div></div></body></html>
