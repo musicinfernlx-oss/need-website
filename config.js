@@ -1,7 +1,6 @@
-// NEED V10 public client configuration.
-// Add the Project URL and publishable/anon key from your own Supabase project.
-// NEVER put a service_role key or other secret key in this file.
+// NEED public Supabase browser connection. Publishable keys are public and safe to embed.
+// Never add a service_role key or database password to this repository.
 window.NEED_SUPABASE_CONFIG = {
-  url: "",
-  anonKey: ""
+  url: "https://kqzedhbhflmtmpkenqvi.supabase.co",
+  anonKey: "sb_publishable_bdN1FS3qiIB40WtPQWh6jw_mZjWiDKO"
 };
