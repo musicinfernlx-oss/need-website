@@ -47,7 +47,7 @@ function simplify(t){return String(t||'').toLocaleLowerCase().normalize('NFD').r
 const stop=new Set(['i','want','need','the','for','with','from','that','and','my','a','an','to','of','in','is','would','looking','about','around','under','below','over','above','buy','find','haluan','tarvitsen','etsin','joka','ja','tai','minulle','noin','alle','enintaan','maksimi','max','eur','euro','euros','euroa','price','budget','hinta','budjetti','good','best','paras','hyvä','€']);
 function parseQuery(text){
  const raw=String(text||'').slice(0,2000),lower=raw.toLocaleLowerCase();
- const priced=[...lower.matchAll(/(?:under|below|max|up to|enint[aä][aä]n|alle|korkeintaan|budget|budjetti|hintakatto)\s*(?:of|on|is|noin|about)?\s*(\d[\d\s,.]{0,9})\s*(?:€|eur|euro)?|(\d[\d\s,.]{0,9})\s*(?:€|eur|euroa)\s*(?:max|maximum|budget|budjetti)?/gi)]
+ const priced=[...lower.replace(/€\s*(\d[\d\s,.]{0,9})/g,'$1 €').matchAll(/(?:under|below|max|up to|enint[aä][aä]n|alle|korkeintaan|budget|budjetti|hintakatto)\s*(?:of|on|is|noin|about)?\s*(\d[\d\s,.]{0,9})\s*(?:€|eur|euro)?|(\d[\d\s,.]{0,9})\s*(?:€|eur|euroa)\s*(?:max|maximum|budget|budjetti)?/gi)]
  .map(m=>Number(String(m[1]||m[2]).replace(/[\s,.](?=\d{3}(?:\D|$))/g,'').replace(',','.')))
  .filter(n=>Number.isFinite(n)&&n>0);
  const budget=priced.length?priced[0]:null;
@@ -191,7 +191,7 @@ $('v13SellerForm').addEventListener('submit',async e=>{
  e.preventDefault();
  if(!client()||!user())return;
  const name=$('v13BusinessName').value.trim();if(name.length<2)return;
- const {error}=await client().from('seller_profiles').insert({id:user().id,business_name:name,status:'pending'});
+ const {error}=await client().from('seller_profiles').insert({id:user().id,business_name:name});
  if(error){sellerStatus.textContent='Could not register: '+error.message;return}
  sellerStatus.textContent='Registration submitted. Business approval is pending.';$('v13SellerForm').hidden=true;
 });
