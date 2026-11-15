@@ -5,7 +5,7 @@ const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const safe=u=>{try{const v=new URL(u);return v.protocol==='https:'?v.href:''}catch{return ''}};
 const auth=()=>window.NEED_AUTH, client=()=>auth()?.getClient?.(), user=()=>auth()?.getUser?.();
-const results=$('v13Results'),grid=$('v13Grid'),msg=$('v13Message'),source=$('v13Source');
+const results=$('v13Results'),grid=$('v13Grid'),msg=$('v13SearchMessage'),source=$('v13Source');
 let products=[],compared=[],searchId=0,profile=null,activeNeeds=[];
 function info(t,error=false){msg.textContent=t;msg.dataset.error=error?'true':''}
 function money(v){return v.price==null?'Price not available':new Intl.NumberFormat('en-IE',{style:'currency',currency:v.currency||'EUR'}).format(Number(v.price))}
@@ -42,31 +42,82 @@ async function food(q,signal){
  const data=await res.json();
  return(data.products||[]).filter(p=>p.code&&p.product_name).slice(0,9).map(p=>({id:'food-'+p.code,kind:'food',title:p.product_name,source:'Open Food Facts · product catalog',description:p.brands||'Community-created product record',image:p.image_front_small_url||'',url:'https://world.openfoodfacts.org/product/'+encodeURIComponent(p.code),price:null}));
 }
-async function merchants(q){
+
+function simplify(t){return String(t||'').toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9äöå ]/g,' ').replace(/\s+/g,' ').trim()}
+const stop=new Set(['i','want','need','the','for','with','from','that','and','my','a','an','to','of','in','is','would','looking','about','around','under','below','over','above','buy','find','haluan','tarvitsen','etsin','joka','ja','tai','minulle','noin','alle','enintaan','maksimi','max','eur','euro','euros','euroa','price','budget','hinta','budjetti','good','best','paras','hyvä','€']);
+function parseQuery(text){
+ const raw=String(text||'').slice(0,2000),lower=raw.toLocaleLowerCase();
+ const priced=[...lower.matchAll(/(?:under|below|max|up to|enint[aä][aä]n|alle|korkeintaan|budget|budjetti|hintakatto)\s*(?:of|on|is|noin|about)?\s*(\d[\d\s,.]{0,9})\s*(?:€|eur|euro)?|(\d[\d\s,.]{0,9})\s*(?:€|eur|euroa)\s*(?:max|maximum|budget|budjetti)?/gi)]
+ .map(m=>Number(String(m[1]||m[2]).replace(/[\s,.](?=\d{3}(?:\D|$))/g,'').replace(',','.')))
+ .filter(n=>Number.isFinite(n)&&n>0);
+ const budget=priced.length?priced[0]:null;
+ const a=window.NEED_V12?.analyze(raw);
+ const terms=simplify(raw.replace(/\d[\d\s,.]{0,9}\s*(?:€|eur|euroa|euro)/gi,' ')).split(' ').filter(x=>x.length>2&&!stop.has(x)).slice(0,16);
+ return {raw,budget,terms,category:a?.category||null,features:a?.features||[]};
+}
+function relevance(p,criteria){
+ const hay=simplify([p.title,p.description,p.category].join(' ')),name=simplify(p.title);
+ let score=0,hits=0;
+ for(const t of criteria.terms){
+  const stem=t.length>5?t.slice(0,-1):t;
+  if(hay.includes(t)||hay.includes(stem)){hits++;score+=(name.includes(t)||name.includes(stem))?5:2}
+ }
+ if(criteria.terms.length&&hits===0)return null;
+ if(criteria.terms.length>2&&hits/criteria.terms.length<.2)return null;
+ if(criteria.budget!=null && p.price!=null){
+  if(p.currency!=='EUR')return null; // no FX guesses in strict price filtering
+  if(Number(p.price)>criteria.budget)return null;
+  score+=Math.min(5,Math.max(0,5-(criteria.budget-Number(p.price))/(criteria.budget||1)*5));
+ }
+ if(criteria.budget!=null&&p.price==null)return null; // unknown price must never claim in budget
+ for(const feat of criteria.features){
+  const t=simplify(feat).split(' ').filter(x=>x.length>3);
+  if(t.some(x=>hay.includes(x)))score+=2;
+ }
+ return score;
+}
+function sortMatches(rows,criteria){
+ return rows.map(p=>({...p,relevance:relevance(p,criteria)})).filter(p=>p.relevance!==null)
+ .sort((a,b)=>(Number(b.promoted)-Number(a.promoted))||(b.relevance-a.relevance)||((a.price??Infinity)-(b.price??Infinity))||a.title.localeCompare(b.title));
+}
+async function merchants(){
  if(!client())return [];
- const {data,error}=await client().from('merchant_products').select('id,title,summary,category,price,currency,product_url,image_url').eq('active',true).limit(100);
+ // seller_profiles are already RLS-filtered to approved merchants, even for anonymous visitors
+ const {data,error}=await client().from('merchant_products')
+ .select('id,title,summary,category,price,currency,product_url,image_url,seller_id,seller_profiles!inner(business_name,status,subscription_status)')
+ .eq('active',true).eq('seller_profiles.status','approved').limit(200);
  if(error)throw Error(error.message);
- const needle=q.toLocaleLowerCase();
- return(data||[]).filter(p=>(p.title+' '+p.summary+' '+p.category).toLocaleLowerCase().includes(needle)).slice(0,18).map(p=>({id:'seller-'+p.id,kind:'merchant',title:p.title,source:'Approved NEED seller',description:p.summary,price:p.price,currency:p.currency,image:p.image_url,url:p.product_url}));
+ return(data||[]).map(p=>({id:'seller-'+p.id,kind:'merchant',title:p.title,source:p.seller_profiles?.business_name||'NEED merchant',description:p.summary,category:p.category,price:p.price,currency:p.currency,image:p.image_url,url:p.product_url,promoted:p.seller_profiles?.subscription_status==='active'}));
 }
 async function search(){
  const q=$('needText').value.trim();if(q.length<2){$('needText').focus();return}
- const kind=source.value,ticket=++searchId;
+ const criteria=parseQuery(q),ticket=++searchId;
  $('v13SearchFor').textContent=q.slice(0,120);
- external(q);products=[];draw();results.hidden=false;results.scrollIntoView({behavior:'smooth',block:'start'});
- if(kind==='external'){info('Choose a store search below. NEED does not yet retrieve or verify the store’s inventory or prices.');return}
- info('Searching '+(kind==='books'?'book catalog':kind==='food'?'food catalog':'approved NEED sellers')+'…');
+ external(q);products=[];compared=[];draw();results.hidden=false;results.scrollIntoView({behavior:'smooth',block:'start'});
+ const budgetNote=criteria.budget!=null?' · Budget ceiling '+new Intl.NumberFormat('en-IE',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(criteria.budget):'';
+ $('v13Criteria').textContent=(criteria.features.length?'Priorities: '+criteria.features.join(', '):'Relevant matches first')+budgetNote;
+ info('Checking available catalogs for matching products…');
  const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),12000);
  try{
-  const found=kind==='books'?await books(q,ctrl.signal):kind==='food'?await food(q,ctrl.signal):await merchants(q);
+  const [merch,other]=await Promise.allSettled([
+   merchants(),
+   /\b(book|books|kirja|kirjat|novel|author)\b/i.test(q)?books(q,ctrl.signal):
+   /\b(food|grocery|groceries|ruoka|elintarvik|milk|maito|coffee|kahvi)\b/i.test(q)?food(q,ctrl.signal):Promise.resolve([])
+  ]);
   if(ticket!==searchId)return;
-  products=found;draw();
-  info(found.length+' catalog results. '+(kind==='seller'?'Seller listings require a connected NEED database.':'These are genuine catalog records, but not verified live store prices or stock.'));
- }catch(e){if(ticket!==searchId)return;info('Catalog unavailable: '+(e.name==='AbortError'?'request timed out':e.message)+'. Try an external store link.',true)}
+  const listed=merch.status==='fulfilled'?sortMatches(merch.value,criteria):[];
+  const publicRecords=other.status==='fulfilled'?sortMatches(other.value.map(p=>({...p,category:p.kind==='book'?'Books':'Groceries',promoted:false})),criteria):[];
+  products=[...listed,...publicRecords];
+  draw();
+  const sponsored=listed.filter(p=>p.promoted).length;
+  info(products.length?products.length+' matching catalog results'+(sponsored?' · '+sponsored+' paid NEED partner result(s) shown first, labeled Sponsored':'')+'. Prices and availability are only shown where source data exists.':'No suitable verified catalog matches yet. Search independent stores below or create a NEED for sellers.'+
+   (criteria.budget!=null?' We excluded catalog items over your €'+criteria.budget+' limit and entries without verified prices.':''));
+  if(merch.status==='rejected'&&client())console.warn('Merchant catalog unavailable:',merch.reason);
+ }catch(e){if(ticket!==searchId)return;info('Catalog search unavailable. External shopping links remain available.',true)}
  finally{clearTimeout(timer)}
 }
 $('v13Find').addEventListener('click',search);
-source.addEventListener('change',search);
+
 $('v13CloseResults').addEventListener('click',()=>{results.hidden=true});
 grid.addEventListener('click',e=>{
  const b=e.target.closest('button[data-compare]');if(!b)return;
