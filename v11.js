@@ -90,6 +90,20 @@ function startNeed(it){
  }
  panel.hidden=true;
 }
+function suggestFromText(){
+ const text=$('needText').value.toLowerCase().trim();
+ if(!text){$('needText').focus();$('needText').placeholder='Describe your idea first, then tap Suggest options…';return;}
+ let cat='tech',groupId='laptop',priority='Work & everyday';
+ if(/renovat|remont|bathroom|kitchen|house|roof|paint|plumb|electrical|clean/.test(text)){cat='home';groupId=/roof|paint|plumb|electrical|repair|clean/.test(text)?'repairs':'reno';priority=groupId==='repairs'?(/roof/.test(text)?'Roof maintenance':/paint/.test(text)?'Painting':'Plumbing'):'Modern look'}
+ else if(/trip|travel|flight|vacation|holiday|hotel|resort|getaway/.test(text)){cat='travel';groupId='trips';priority=/family|kid|children/.test(text)?'Family-friendly':/adventure|hike/.test(text)?'Adventure':'Relaxing escape'}
+ else if(/bike|bicycle|scooter|sneaker|shoe|fashion|clothing|style/.test(text)){cat='style';groupId=/shoe|sneaker|fashion|clothing|style/.test(text)?'fashion':'bikes';priority=groupId==='fashion'?'Everyday comfort':'City commuting'}
+ else if(/headphon|audio|speaker|music|studio|headset|earbud/.test(text)){cat='tech';groupId='audio';priority=/studio|music|production/.test(text)?'Studio & music':/gaming|game/.test(text)?'Gaming':'Commuting'}
+ else if(/phone|smartphone|mobile|iphone|android/.test(text)){cat='tech';groupId='phone';priority=/photo|camera|video/.test(text)?'Camera':/battery/.test(text)?'Battery':'Performance'}
+ else if(/gaming|game|gpu|graphics/.test(text)){cat='tech';groupId='laptop';priority='Gaming'}
+ else if(/edit|design|music|render|production/.test(text)){cat='tech';groupId='laptop';priority='Creative production'}
+ showCategory(cat);state.group=groupId;state.priority=priority;render();
+}
+$('v11SuggestBtn')?.addEventListener('click',suggestFromText);
 function genericNeed(){
  const c=catalog[state.category],g=group();
  $('needText').value='I need help finding '+g.name.toLowerCase()+'. My priority: '+state.priority+'. Please suggest relevant options.';
