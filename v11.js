@@ -128,7 +128,22 @@ function preview(text){
  const sorted=g.items.map((item,i)=>({...item,index:i,score:window.NEED_V12?.rank?.(item,a.priority,a)||0})).sort((x,y)=>y.score-x.score);
  return {category:c.title,group:g.name,groupId:g.id,categoryId:a.category,priority:a.priority,items:sorted.slice(0,3).map(item=>({title:item.name,description:item.desc,features:item.features,range:item.budget,image:window.NEED_V12?.photoFor?.(g.id,item.index)||''}))};
 }
-window.NEED_GUIDE={applyAnalysis,showCategory,preview};
+function explorePreview(text,index){
+ const a=window.NEED_V12?.analyze(text);if(!a)return;
+ applyAnalysis(a);
+ // Keep the exact clicked suggestion visible in the guided browser.
+ const options=scoredItems().map(x=>x.item);
+ const chosen=options[Number(index)];
+ if(chosen){
+  const target=group().items.indexOf(chosen);
+  if(target>=0){
+   showAlternatives=true;render();
+   const element=panel.querySelector('[data-v11-choose="'+options.indexOf(chosen)+'"]');
+   element?.closest('.v11-suggestion')?.scrollIntoView({behavior:'smooth',block:'center'});
+  }
+ }
+}
+window.NEED_GUIDE={applyAnalysis,showCategory,preview,explorePreview};
 function suggestFromText(){
  const text=$('needText').value.trim();
  if(text.length<6){$('needText').focus();$('needText').placeholder='Describe your idea first, then tap Suggest options…';return}
