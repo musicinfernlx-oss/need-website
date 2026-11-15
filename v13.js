@@ -52,7 +52,7 @@ function parseQuery(text){
  .filter(n=>Number.isFinite(n)&&n>0);
  const budget=priced.length?priced[0]:null;
  const a=window.NEED_V12?.analyze(raw);
- const terms=simplify(raw.replace(/\d[\d\s,.]{0,9}\s*(?:€|eur|euroa|euro)/gi,' ')).split(' ').filter(x=>x.length>2&&!stop.has(x)).slice(0,16);
+ const terms=simplify(raw.replace(/\d[\d\s,.]{0,9}\s*(?:€|eur|euroa|euro)/gi,' ')).split(' ').filter(x=>x.length>2&&!stop.has(x)&&!/^[0-9]+$/.test(x)).slice(0,16);
  return {raw,budget,terms,category:a?.category||null,features:a?.features||[]};
 }
 function relevance(p,criteria){
