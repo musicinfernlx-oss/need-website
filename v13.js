@@ -158,4 +158,10 @@ $('v13SellerClose').addEventListener('click',closeSeller);
 $('v13SellerDialog').addEventListener('click',e=>{if(e.target===sellerModal)closeSeller()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!sellerModal.hidden)closeSeller();if(!$('v13OffersDialog').hidden){$('v13OffersDialog').hidden=true;document.body.style.overflow=''}}});
 window.NEED_MARKET={decorateCards,search};
+if(!client()){
+ try{
+  const drafts=JSON.parse(localStorage.getItem('need_v8_requests')||'[]');
+  if(Array.isArray(drafts))decorateCards(drafts,false);
+ }catch(e){}
+}
 })();
