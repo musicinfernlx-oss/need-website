@@ -151,8 +151,7 @@ $('v13CloseResults').addEventListener('click',()=>{results.hidden=true});
 grid.addEventListener('click',e=>{
  const suggestion=e.target.closest('button[data-v152-guide]');
  if(suggestion){
-   const a=window.NEED_V12?.analyze?.($('needText').value);
-   if(a)window.NEED_GUIDE?.applyAnalysis?.(a);
+   window.NEED_GUIDE?.explorePreview?.($('needText').value,Number(suggestion.dataset.v152Guide));
    return;
  }
  const b=e.target.closest('button[data-compare]');if(!b)return;
