@@ -5,7 +5,7 @@ const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const safe=u=>{try{const v=new URL(u);return v.protocol==='https:'?v.href:''}catch{return ''}};
 const auth=()=>window.NEED_AUTH, client=()=>auth()?.getClient?.(), user=()=>auth()?.getUser?.();
-const results=$('v13Results'),grid=$('v13Grid'),msg=$('v13SearchMessage'),source=$('v13Source');
+const results=$('v13Results'),grid=$('v13Grid'),msg=$('v13SearchMessage');
 let products=[],compared=[],searchId=0,profile=null,activeNeeds=[];
 function info(t,error=false){msg.textContent=t;msg.dataset.error=error?'true':''}
 function money(v){return v.price==null?'Price not available':new Intl.NumberFormat('en-IE',{style:'currency',currency:v.currency||'EUR'}).format(Number(v.price))}
@@ -26,8 +26,8 @@ function drawCompare(){
 function draw(){
  grid.innerHTML=products.length?products.map(p=>{
   const image=safe(p.image),url=safe(p.url),active=compared.some(x=>x.id===p.id);
-  return '<article class="v13-product"><div class="v13-product-photo">'+(image?'<img src="'+esc(image)+'" loading="lazy" alt="'+esc(p.title)+'" onerror="this.style.display=\'none\'">':'<span>✦</span>')+'</div><div class="v13-product-body"><span class="v13-source">'+esc(p.source)+'</span><h3>'+esc(p.title)+'</h3><p>'+esc(p.description||'')+'</p><strong>'+esc(money(p))+'</strong><div class="v13-product-actions"><button type="button" data-compare="'+esc(p.id)+'" aria-pressed="'+active+'">'+(active?'✓ Comparing':'+ Compare')+'</button>'+(url?'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+(p.kind==='merchant'?'Visit store ↗':'View source ↗')+'</a>':'')+'</div></div></article>';
- }).join(''):'<p class="v13-empty">No matching catalog records from this source. The external shopping links below are always available.</p>';
+  return '<article class="v13-product"><div class="v13-product-photo">'+(image?'<img src="'+esc(image)+'" loading="lazy" alt="'+esc(p.title)+'" onerror="this.style.display=\'none\'">':'<span>✦</span>')+'</div><div class="v13-product-body"><span class="v13-source">'+(p.promoted?'<span class="v13-sponsored">Sponsored · NEED partner</span> ':'')+esc(p.source)+'</span><h3>'+esc(p.title)+'</h3><p>'+esc(p.description||'')+'</p><strong>'+esc(money(p))+'</strong><div class="v13-product-actions"><button type="button" data-compare="'+esc(p.id)+'" aria-pressed="'+active+'">'+(active?'✓ Comparing':'+ Compare')+'</button>'+(url?'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+(p.kind==='merchant'?'Visit store ↗':'View source ↗')+'</a>':'')+'</div></div></article>';
+ }).join(''):'<p class="v13-empty">No matching products in the connected catalogs yet. You can search other stores using the links below.</p>';
  drawCompare();
 }
 async function books(q,signal){
