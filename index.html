@@ -183,12 +183,24 @@ textarea.v8-field{min-height:130px;resize:vertical}
 .board-top h2{font-size:1.55rem}
 .board-top .v8-btn{padding:10px 11px;font-size:.74rem}
 }
+
+/* V9.2 heading refinement: intentional two-line composition, no merged words */
+.hero h1 .headline-line{display:block;white-space:nowrap}
+.hero h1 .gradient.headline-line{font-size:.86em;letter-spacing:-.073em;line-height:1.04}
+@media(max-width:700px){
+.hero h1{font-size:clamp(2.8rem,10vw,4.4rem);letter-spacing:-.075em}
+.hero h1 .gradient.headline-line{font-size:clamp(2.4rem,8.8vw,3.8rem);letter-spacing:-.072em}
+}
+@media(max-width:370px){
+.hero h1{font-size:clamp(2.55rem,9.6vw,3.6rem)}
+.hero h1 .gradient.headline-line{font-size:clamp(2.25rem,8.5vw,3.3rem)}
+}
 </style></head>
 <body>
 <header class="topbar"><div class="shell topbar-inner"><a class="brand" href="#top" aria-label="NEED home">NEED<span>.</span></a><nav class="nav-actions" aria-label="Navigation"><a href="#explore" class="nav-link desktop">Explore</a><a class="nav-link" href="#my-needs">My NEEDs</a><a class="nav-link border" href="#business">For business ↗</a></nav></div></header>
 <main id="top">
 <section class="hero"><div class="shell hero-grid">
-<div class="hero-copy"><div class="kicker">A smarter way to buy anything</div><h1>The world <span class="gradient">comes to you.</span></h1><p class="lead">Tell us what you need. Let the right opportunities find you — from everyday products to life's bigger plans.</p>
+<div class="hero-copy"><div class="kicker">A smarter way to buy anything</div><h1><span class="headline-line">The world</span><span class="gradient headline-line">comes to you.</span></h1><p class="lead">Tell us what you need. Let the right opportunities find you — from everyday products to life's bigger plans.</p>
 <div class="compose"><label for="needText" style="display:block;color:#735aab;font-weight:850;font-size:.78rem;margin:0 7px 8px">WHAT DO YOU NEED?</label><textarea id="needText" placeholder="A new laptop, a bathroom renovation, a dream holiday..." maxlength="2000"></textarea><div class="compose-bottom"><span class="micro">A few words is all it takes.</span><button id="createNeedBtn" type="button" class="action">Create my NEED ↗</button></div></div>
 <div class="quick-picks" aria-label="Example requests"><button class="chip" data-fill="I need a premium gaming laptop for video editing and music production." type="button">⌘ Gaming laptop</button><button class="chip" data-fill="I need a bathroom renovation with a modern premium look." type="button">⌂ Renovation</button><button class="chip" data-fill="I need an electric bike for city commuting and weekend rides." type="button">ϟ Electric bike</button></div>
 <div class="trust"><span>Free to explore</span><span>Products & services</span><span>One simple request</span></div>
