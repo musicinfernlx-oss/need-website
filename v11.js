@@ -56,25 +56,44 @@ const catalog={
 const panel=$('v11Panel'),openBusiness=$('v11Business'),businessBtn=$('v11BusinessBtn');
 let state={category:'tech',group:'laptop',priority:'Work & everyday',query:''};
 const safe=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const itemList=()=>{const group=catalog[state.category].groups.find(g=>g.id===state.group);return group.items.filter(it=>it.tags.includes(state.priority)||state.priority==='Any priority').concat(group.items.filter(it=>!it.tags.includes(state.priority)&&state.priority!=='Any priority'))};
+let showAlternatives=false;
+function scoredItems(){
+ const g=group();
+ return g.items.map((item,index)=>({item,index,score:item.tags.includes(state.priority)?2:0}))
+ .sort((a,b)=>b.score-a.score||a.index-b.index);
+}
+function itemList(){return scoredItems().map(x=>x.item)}
 function showCategory(id){
  if(!catalog[id])return;
  state.category=id;state.group=catalog[id].groups[0].id;state.priority=catalog[id].groups[0].options[0];state.query='';
+ showAlternatives=false;
  render();panel.hidden=false;panel.scrollIntoView({behavior:'smooth',block:'start'});
  document.querySelectorAll('.category-card').forEach(c=>c.classList.toggle('v11-selected',c.dataset.category===id));
 }
 function group(){return catalog[state.category].groups.find(g=>g.id===state.group)}
 function render(){
  const c=catalog[state.category],g=group();
+ const ranked=scoredItems(),matched=ranked.filter(x=>x.score>0),best=ranked[0];
  $('v11CategoryLabel').textContent=c.title;
  $('v11Title').textContent=c.tag;
  $('v11Intro').textContent=c.intro;
- $('v11CategoryNav').innerHTML=Object.entries(catalog).map(([id,cat])=>'<button type="button" class="v11-tab '+(state.category===id?'active':'')+'" data-v11-category="'+id+'">'+safe(cat.title)+'</button>').join('');
- $('v11Subtypes').innerHTML=c.groups.map(x=>'<button type="button" class="v11-type '+(x.id===state.group?'active':'')+'" data-v11-group="'+x.id+'"><span>'+x.icon+'</span>'+safe(x.name)+'</button>').join('');
+ $('v11CategoryNav').innerHTML=Object.entries(catalog).map(([id,cat])=>'<button type="button" class="v11-tab '+(state.category===id?'active':'')+'" data-v11-category="'+id+'" aria-pressed="'+(state.category===id)+'">'+safe(cat.title)+'</button>').join('');
+ $('v11Subtypes').innerHTML=c.groups.map(x=>'<button type="button" class="v11-type '+(x.id===state.group?'active':'')+'" data-v11-group="'+x.id+'" aria-pressed="'+(x.id===state.group)+'">'+safe(x.name)+'</button>').join('');
  $('v11Question').textContent=g.q;
- $('v11Priorities').innerHTML=g.options.map(x=>'<button type="button" class="v11-priority '+(x===state.priority?'active':'')+'" data-v11-priority="'+safe(x)+'">'+safe(x)+'</button>').join('');
- $('v11SuggestionCount').textContent=g.items.length+' tailored starting points';
- $('v11Suggestions').innerHTML=itemList().map((it,i)=>'<article class="v11-suggestion"><div class="v11-sug-top"><div class="v11-icon">'+g.icon+'</div><div><span class="v11-small">'+safe(it.type)+'</span><h3>'+safe(it.name)+'</h3></div></div><p>'+safe(it.desc)+'</p><div class="v11-feature-row">'+it.features.map(t=>'<span>'+safe(t)+'</span>').join('')+'</div><div class="v11-sug-bottom"><span class="v11-budget">'+safe(it.budget)+'</span><button type="button" class="v11-sug-btn" data-v11-choose="'+i+'">Request this ↗</button></div></article>').join('');
+ $('v11Priorities').innerHTML=g.options.map(x=>'<button type="button" class="v11-priority '+(x===state.priority?'active':'')+'" data-v11-priority="'+safe(x)+'" aria-pressed="'+(x===state.priority)+'">'+safe(x)+'</button>').join('');
+ const ordered=ranked.map(x=>x.item);
+ const visible=showAlternatives?ordered:ordered.slice(0,1);
+ $('v11SuggestionCount').textContent=matched.length?'Recommended for '+state.priority:'Explore your options';
+ $('v11Suggestions').innerHTML=visible.map((it,i)=>{
+ const isTop=i===0;
+ return '<article class="v11-suggestion '+(isTop?'v11-best':'')+'"><div class="v11-sug-top"><div class="v11-icon" aria-hidden="true">'+(state.category==='tech'?'T':state.category==='home'?'H':state.category==='style'?'M':'E')+'</div><div><span class="v11-small">'+(isTop?'✦ BEST STARTING POINT':'ALTERNATIVE')+' · '+safe(it.type)+'</span><h3>'+safe(it.name)+'</h3></div></div><p>'+safe(it.desc)+'</p><div class="v11-feature-row">'+it.features.map(t=>'<span>'+safe(t)+'</span>').join('')+'</div><div class="v11-sug-bottom"><span class="v11-budget">'+safe(it.budget)+' <small>guide only</small></span><button type="button" class="v11-sug-btn" data-v11-choose="'+i+'">Request this ↗</button></div></article>';
+ }).join('');
+ const alternatives=$('v11Alternatives');
+ if(alternatives){
+  alternatives.hidden=ranked.length<2;
+  alternatives.textContent=showAlternatives?'Show only recommended ↑':'See '+(ranked.length-1)+' other '+(ranked.length-1===1?'option':'options')+' ↓';
+  alternatives.setAttribute('aria-expanded',String(showAlternatives));
+ }
 }
 function startNeed(it){
  const c=catalog[state.category],g=group();
@@ -101,7 +120,7 @@ function suggestFromText(){
  else if(/phone|smartphone|mobile|iphone|android/.test(text)){cat='tech';groupId='phone';priority=/photo|camera|video/.test(text)?'Camera':/battery/.test(text)?'Battery':'Performance'}
  else if(/gaming|game|gpu|graphics/.test(text)){cat='tech';groupId='laptop';priority='Gaming'}
  else if(/edit|design|music|render|production/.test(text)){cat='tech';groupId='laptop';priority='Creative production'}
- showCategory(cat);state.group=groupId;state.priority=priority;render();
+ showCategory(cat);state.group=groupId;state.priority=priority;showAlternatives=false;render();
 }
 $('v11SuggestBtn')?.addEventListener('click',suggestFromText);
 function genericNeed(){
@@ -126,10 +145,11 @@ panel.addEventListener('click',e=>{
  const pri=e.target.closest('[data-v11-priority]');
  const chosen=e.target.closest('[data-v11-choose]');
  if(cat)showCategory(cat.dataset.v11Category);
- if(grp){state.group=grp.dataset.v11Group;state.priority=group().options[0];render()}
- if(pri){state.priority=pri.dataset.v11Priority;render()}
+ if(grp){state.group=grp.dataset.v11Group;state.priority=group().options[0];showAlternatives=false;render()}
+ if(pri){state.priority=pri.dataset.v11Priority;showAlternatives=false;render();}
  if(chosen){const it=itemList()[Number(chosen.dataset.v11Choose)];if(it)startNeed(it)}
 });
+$('v11Alternatives').addEventListener('click',()=>{showAlternatives=!showAlternatives;render()});
 $('v11GenericNeed').addEventListener('click',genericNeed);
 $('v11Close').addEventListener('click',()=>{panel.hidden=true;document.querySelectorAll('.category-card').forEach(c=>c.classList.remove('v11-selected'))});
 function businessOpen(){openBusiness.hidden=false;document.body.style.overflow='hidden'}
