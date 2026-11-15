@@ -27,7 +27,7 @@ function draw(){
  grid.innerHTML=products.length?products.map(p=>{
   const image=safe(p.image),url=safe(p.url),active=compared.some(x=>x.id===p.id);
   return '<article class="v13-product"><div class="v13-product-photo">'+(image?'<img src="'+esc(image)+'" loading="lazy" alt="'+esc(p.title)+'" onerror="this.style.display=\'none\'">':'<span>✦</span>')+'</div><div class="v13-product-body"><span class="v13-source">'+(p.promoted?'<span class="v13-sponsored">Sponsored · NEED partner</span> ':'')+esc(p.source)+'</span><h3>'+esc(p.title)+'</h3><p>'+esc(p.description||'')+'</p><strong>'+esc(money(p))+'</strong><div class="v13-product-actions"><button type="button" data-compare="'+esc(p.id)+'" aria-pressed="'+active+'">'+(active?'✓ Comparing':'+ Compare')+'</button>'+(url?'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+(p.kind==='merchant'?'Visit store ↗':'View source ↗')+'</a>':'')+'</div></div></article>';
- }).join(''):'<p class="v13-empty">No matching products in the connected catalogs yet. You can search other stores using the links below.</p>';
+ }).join(''):'<p class="v13-empty">No products found in connected catalogs. Explore independent stores below, or use buying advice to refine your search.</p>';
  drawCompare();
 }
 async function books(q,signal){
@@ -105,7 +105,7 @@ async function search(){
  external(q);products=[];compared=[];draw();results.hidden=false;results.scrollIntoView({behavior:'smooth',block:'start'});
  const budgetNote=criteria.budget!=null?' · Budget ceiling '+new Intl.NumberFormat('en-IE',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(criteria.budget):'';
  $('v13Criteria').textContent=(criteria.features.length?'Priorities: '+criteria.features.join(', '):'Relevant matches first')+budgetNote;
- info('Checking available catalogs for matching products…');
+ info('Looking for matches based on your search…');
  const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),12000);
  try{
   const [merch,other,live]=await Promise.allSettled([
@@ -123,13 +123,23 @@ async function search(){
   draw();
   const sponsored=listed.filter(p=>p.promoted).length;
   const liveDetail=liveData.status==='live'?' · '+liveMatches.length+' live eBay listing(s)':' · live retail feed not connected';
-  info(products.length?products.length+' matching catalog results'+(sponsored?' · '+sponsored+' paid NEED partner result(s) shown first, labeled Sponsored':'')+'.'+liveDetail+' Verify delivery, stock and total cost at seller.':'No suitable catalog matches yet.'+liveDetail+' Search independent stores below or create a NEED for sellers.'+
+  info(products.length?products.length+' matching catalog results'+(sponsored?' · '+sponsored+' paid NEED partner result(s) shown first, labeled Sponsored':'')+'.'+liveDetail+' Verify delivery, stock and total cost at seller.':'No products to compare from connected catalogs yet.'+liveDetail+' You can search external stores below or ask sellers for offers.'+
    (criteria.budget!=null?' We excluded catalog items over your €'+criteria.budget+' limit and entries without verified prices.':''));
   if(merch.status==='rejected'&&client())console.warn('Merchant catalog unavailable:',merch.reason);
  }catch(e){if(ticket!==searchId)return;info('Catalog search unavailable. External shopping links remain available.',true)}
  finally{clearTimeout(timer)}
 }
 $('v13Find').addEventListener('click',search);
+$('needText').addEventListener('keydown',e=>{
+ if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();search()}
+});
+$('v15Guide').addEventListener('click',()=>{
+ const text=$('needText').value.trim();
+ if(text.length<2)return;
+ const a=window.NEED_V12?.analyze(text);
+ if(a){window.NEED_V12.setAnalysis(a);window.NEED_GUIDE?.applyAnalysis(a)}
+});
+
 
 $('v13CloseResults').addEventListener('click',()=>{results.hidden=true});
 grid.addEventListener('click',e=>{
@@ -142,8 +152,9 @@ grid.addEventListener('click',e=>{
 });
 $('v13Compare').addEventListener('click',e=>{const b=e.target.closest('button[data-remove]');if(b){compared=compared.filter(x=>x.id!==b.dataset.remove);draw()}});
 $('v13PublishCTA').addEventListener('click',()=>{
- $('my-needs').scrollIntoView({behavior:'smooth',block:'start'});
- $('v13PublishHint').textContent='Open or create a NEED below, then choose Publish to share it with approved sellers once your account is connected.';
+ const text=$('needText').value.trim();
+ if(!text){$('needText').focus();return}
+ $('createNeedBtn').click();
 });
 function decorateCards(items,isSignedIn){
  document.querySelectorAll('#myNeedsList .v8-request').forEach((card,i)=>{
