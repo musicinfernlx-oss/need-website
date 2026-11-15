@@ -89,6 +89,15 @@ async function merchants(){
  if(error)throw Error(error.message);
  return(data||[]).map(p=>({id:'seller-'+p.id,kind:'merchant',title:p.title,source:p.seller_profiles?.business_name||'NEED merchant',description:p.summary,category:p.category,price:p.price,currency:p.currency,image:p.image_url,url:p.product_url,promoted:p.seller_profiles?.subscription_status==='active'}));
 }
+async function liveProducts(criteria){
+ if(!client())return {items:[],status:'not_connected'};
+ const text=criteria.terms.slice(0,8).map(t=>({kannettava:'laptop',tietokone:'computer',pelikannettava:'gaming laptop',kuulokkeet:'headphones',puhelin:'smartphone',sähköpyörä:'electric bike'}[t]||t)).join(' ').trim();
+ if(text.length<2)return {items:[],status:'no_query'};
+ const {data,error}=await client().functions.invoke('product-search',{body:{query:text,maxPrice:criteria.budget}});
+ if(error)return {items:[],status:'unavailable'};
+ if(!data||!Array.isArray(data.items))return {items:[],status:'unavailable'};
+ return {items:data.items.map(p=>({...p,promoted:false,source:p.source||'eBay · live listing'})),status:'live',retrievedAt:data.retrievedAt};
+}
 async function search(){
  const q=$('needText').value.trim();if(q.length<2){$('needText').focus();return}
  const criteria=parseQuery(q),ticket=++searchId;
@@ -99,18 +108,22 @@ async function search(){
  info('Checking available catalogs for matching products…');
  const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),12000);
  try{
-  const [merch,other]=await Promise.allSettled([
+  const [merch,other,live]=await Promise.allSettled([
    merchants(),
    /\b(book|books|kirja|kirjat|novel|author)\b/i.test(q)?books(q,ctrl.signal):
-   /\b(food|grocery|groceries|ruoka|elintarvik|milk|maito|coffee|kahvi)\b/i.test(q)?food(q,ctrl.signal):Promise.resolve([])
+   /\b(food|grocery|groceries|ruoka|elintarvik|milk|maito|coffee|kahvi)\b/i.test(q)?food(q,ctrl.signal):Promise.resolve([]),
+   liveProducts(criteria)
   ]);
   if(ticket!==searchId)return;
   const listed=merch.status==='fulfilled'?sortMatches(merch.value,criteria):[];
   const publicRecords=other.status==='fulfilled'?sortMatches(other.value.map(p=>({...p,category:p.kind==='book'?'Books':'Groceries',promoted:false})),criteria):[];
-  products=[...listed,...publicRecords];
+  const liveData=live.status==='fulfilled'?live.value:{items:[],status:'unavailable'};
+  const liveMatches=sortMatches(liveData.items,criteria);
+  products=[...listed,...liveMatches,...publicRecords];
   draw();
   const sponsored=listed.filter(p=>p.promoted).length;
-  info(products.length?products.length+' matching catalog results'+(sponsored?' · '+sponsored+' paid NEED partner result(s) shown first, labeled Sponsored':'')+'. Prices and availability are only shown where source data exists.':'No suitable verified catalog matches yet. Search independent stores below or create a NEED for sellers.'+
+  const liveDetail=liveData.status==='live'?' · '+liveMatches.length+' live eBay listing(s)':' · live retail feed not connected';
+  info(products.length?products.length+' matching catalog results'+(sponsored?' · '+sponsored+' paid NEED partner result(s) shown first, labeled Sponsored':'')+'.'+liveDetail+' Verify delivery, stock and total cost at seller.':'No suitable catalog matches yet.'+liveDetail+' Search independent stores below or create a NEED for sellers.'+
    (criteria.budget!=null?' We excluded catalog items over your €'+criteria.budget+' limit and entries without verified prices.':''));
   if(merch.status==='rejected'&&client())console.warn('Merchant catalog unavailable:',merch.reason);
  }catch(e){if(ticket!==searchId)return;info('Catalog search unavailable. External shopping links remain available.',true)}
