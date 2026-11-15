@@ -167,5 +167,6 @@ if(api){
   if(data?.user?.id!==user?.id){user=data?.user||null;items=[];render();updateMode();if(user)await loadCloud()}
  }).catch(e=>message('Could not check your account: '+e.message,'error'));
 }
+window.NEED_AUTH={getClient:()=>api,getUser:()=>user};
 updateMode();render();
 })();
