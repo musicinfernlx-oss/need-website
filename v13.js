@@ -23,11 +23,17 @@ function drawCompare(){
  $('v13CompareCount').textContent=compared.length+'/3 selected';
  $('v13CompareRows').innerHTML=compared.map(x=>'<div class="v13-compare-row"><b>'+esc(x.title)+'</b><span>'+esc(money(x))+'</span><button type="button" data-remove="'+esc(x.id)+'" aria-label="Remove option">×</button></div>').join('');
 }
+function guideCards(text){
+ const p=window.NEED_GUIDE?.preview?.(text);
+ if(!p)return '<p class="v13-empty">Describe your need to explore possible product types. Real store listings will appear here after a product feed is activated.</p>';
+ return '<div class="v152-guides"><div class="v152-guide-title"><span>✦ NEED BUYING GUIDE</span><h3>Here are some options worth considering</h3><p>These are product types, not live offers. Search real shops below to check current models, prices and availability.</p></div><div class="v152-guides-grid">'+
+ p.items.map((item,i)=>'<article class="v152-guide"><div class="v152-photo">'+(item.image?'<img loading="lazy" src="'+esc(item.image)+'" alt="Illustrative '+esc(item.title)+' photo" onerror="this.remove()">':'')+'<span>IDEA '+(i+1)+'</span></div><div class="v152-guide-body"><h4>'+esc(item.title)+'</h4><p>'+esc(item.description)+'</p><div class="v152-traits">'+item.features.map(t=>'<span>'+esc(t)+'</span>').join('')+'</div><button class="v152-choose" data-v152-guide="'+i+'" type="button">Explore this option ↗</button></div></article>').join('')+'</div></div>';
+}
 function draw(){
  grid.innerHTML=products.length?products.map(p=>{
   const image=safe(p.image),url=safe(p.url),active=compared.some(x=>x.id===p.id);
   return '<article class="v13-product"><div class="v13-product-photo">'+(image?'<img src="'+esc(image)+'" loading="lazy" alt="'+esc(p.title)+'" onerror="this.style.display=\'none\'">':'<span>✦</span>')+'</div><div class="v13-product-body"><span class="v13-source">'+(p.promoted?'<span class="v13-sponsored">Sponsored · NEED partner</span> ':'')+esc(p.source)+'</span><h3>'+esc(p.title)+'</h3><p>'+esc(p.description||'')+'</p><strong>'+esc(money(p))+'</strong><div class="v13-product-actions"><button type="button" data-compare="'+esc(p.id)+'" aria-pressed="'+active+'">'+(active?'✓ Comparing':'+ Compare')+'</button>'+(url?'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+(p.kind==='merchant'?'Visit store ↗':'View source ↗')+'</a>':'')+'</div></div></article>';
- }).join(''):'<p class="v13-empty">No products found in connected catalogs. Explore independent stores below, or use buying advice to refine your search.</p>';
+ }).join(''):guideCards($('needText').value);
  drawCompare();
 }
 async function books(q,signal){
@@ -123,7 +129,7 @@ async function search(){
   draw();
   const sponsored=listed.filter(p=>p.promoted).length;
   const liveDetail=liveData.status==='live'?' · '+liveMatches.length+' live eBay listing(s)':' · live retail feed not connected';
-  info(products.length?products.length+' matching catalog results'+(sponsored?' · '+sponsored+' paid NEED partner result(s) shown first, labeled Sponsored':'')+'.'+liveDetail+' Verify delivery, stock and total cost at seller.':'No products to compare from connected catalogs yet.'+liveDetail+' You can search external stores below or ask sellers for offers.'+
+  info(products.length?products.length+' matching catalog results'+(sponsored?' · '+sponsored+' paid NEED partner result(s) shown first, labeled Sponsored':'')+'.'+liveDetail+' Verify delivery, stock and total cost at seller.':'Buying guidance is available below. '+(liveData.status==='live'?'No matching live listings from the connected provider. ':'Live retail products are not connected yet. ')+'You can explore a suitable product type or check current listings at external stores.'+
    (criteria.budget!=null?' We excluded catalog items over your €'+criteria.budget+' limit and entries without verified prices.':''));
   if(merch.status==='rejected'&&client())console.warn('Merchant catalog unavailable:',merch.reason);
  }catch(e){if(ticket!==searchId)return;info('Catalog search unavailable. External shopping links remain available.',true)}
@@ -143,6 +149,12 @@ $('v15Guide').addEventListener('click',()=>{
 
 $('v13CloseResults').addEventListener('click',()=>{results.hidden=true});
 grid.addEventListener('click',e=>{
+ const suggestion=e.target.closest('button[data-v152-guide]');
+ if(suggestion){
+   const a=window.NEED_V12?.analyze?.($('needText').value);
+   if(a)window.NEED_GUIDE?.applyAnalysis?.(a);
+   return;
+ }
  const b=e.target.closest('button[data-compare]');if(!b)return;
  const item=products.find(x=>x.id===b.dataset.compare);if(!item)return;
  if(compared.some(x=>x.id===item.id))compared=compared.filter(x=>x.id!==item.id);
