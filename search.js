@@ -1,9 +1,9 @@
 /* NEED Search V16.1 — standalone results, real listings only */
 (()=>{'use strict';
 const $=id=>document.getElementById(id);
-const input=$('term'),status=$('status'),grid=$('products');
+const status=$('status'),grid=$('products');
 const params=new URLSearchParams(location.search),initial=(params.get('q')||'').trim().slice(0,2000);
-input.value=initial;
+$('queryLabel').textContent=initial?'You searched for: “'+initial+'”':'No search entered';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function secureUrl(value){try{const url=new URL(value);return url.protocol==='https:'?url.href:''}catch{return ''}}
 const stores=[
@@ -53,22 +53,21 @@ async function fetchProducts(q){
 let searchNumber=0;
 async function run(q){
  const ticket=++searchNumber;
- if(q.length<2){status.textContent='Enter at least two characters to search.';note('Start with your NEED','Search for a product in the field above.','');return}
+ if(q.length<2){status.textContent='Start from the NEED homepage.';note('One search for everything','Describe what you need using the single search field on the NEED homepage.','');return}
  document.title=q.slice(0,80)+' — NEED search';
- status.textContent='Searching connected product sources…';
- grid.innerHTML='<div class="panel"><p>Looking for real products and current prices…</p></div>';
+ status.textContent='Searching available NEED sources for products and services…';
+ grid.innerHTML='<div class="panel"><p>Finding available matches for your NEED…</p></div>';
  try{
   const result=await fetchProducts(q);
   if(ticket!==searchNumber)return;
   if(!result.items.length){
-   status.textContent='No verified product offers found for this search.';
-   note('No verified offers available yet',result.connected?'No matching merchant offers are currently available in NEED. You can search these stores directly while more sources are connected.':'NEED does not currently have an active live retailer feed. We will not display invented product prices or placeholder offers. You can search the original stores below.',q);
+   status.textContent='No verified listings found for your NEED yet.';
+   grid.innerHTML='<div class="panel"><h2>No matching verified offers yet</h2><p>NEED searches its connected sources using your original request. Products, local services, experiences and seller offers will all appear here when corresponding sources are available. No fake prices or invented offers are shown.</p><a class="request-link" href="./index.html?need='+encodeURIComponent(q)+'#top">Continue this NEED ↗</a><p class="small">Additional public store links are provided below as a fallback while integrations are being activated.</p>'+alternatives(q)+'</div>';
    return;
   }
-  status.textContent=result.items.length+' verified listing'+(result.items.length===1?'':'s')+' · Open a product to visit its seller';
+  status.textContent=result.items.length+' verified matching offer'+(result.items.length===1?'':'s')+' · Select an offer to visit its provider';
   grid.innerHTML=result.items.map(p=>'<article class="product"><a target="_blank" rel="noopener noreferrer" href="'+esc(p.url)+'" aria-label="View '+esc(p.title)+' at '+esc(p.source)+'"><div class="picture">'+(p.image?'<img loading="lazy" src="'+esc(p.image)+'" alt="'+esc(p.title)+'" onerror="this.remove()">':'<span class="missing">Product image unavailable</span>')+'</div><div class="details"><div class="store">'+esc(p.source)+(p.promoted?'<span class="sponsored">Sponsored</span>':'')+'</div><h2>'+esc(p.title)+'</h2><div class="price">'+esc(price(p))+'</div><div class="cta">View product ↗</div></div></a></article>').join('');
- }catch(e){if(ticket!==searchNumber)return;status.textContent='Product source unavailable.';note('Search is temporarily unavailable','You can still open the store searches below.',q)}
+ }catch(e){if(ticket!==searchNumber)return;status.textContent='One or more NEED sources are unavailable.';note('Search is temporarily unavailable','You can still open the store searches below.',q)}
 }
-$('searchForm').addEventListener('submit',e=>{e.preventDefault();const q=input.value.trim();history.replaceState(null,'','search.html?q='+encodeURIComponent(q));run(q)});
-if(initial)run(initial);else{status.textContent='Search for something you need.';note('Discover products','Type a product or describe what you need in the search field above.','')}
+if(initial)run(initial);else{status.textContent='Start from the homepage.';note('One search for everything','Use the single search field on the NEED homepage to search for products, services, or experiences.','')}
 })();
