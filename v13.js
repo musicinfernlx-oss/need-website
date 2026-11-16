@@ -6,6 +6,15 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const safe=u=>{try{const v=new URL(u);return v.protocol==='https:'?v.href:''}catch{return ''}};
 const auth=()=>window.NEED_AUTH, client=()=>auth()?.getClient?.(), user=()=>auth()?.getUser?.();
 const results=$('v13Results'),grid=$('v13Grid'),msg=$('v13SearchMessage');
+/* Resume the same NEED on the homepage without creating a second search flow. */
+try{
+ const resumed=new URLSearchParams(window.location.search).get('need');
+ if(resumed && resumed.trim().length>1 && resumed.length<=2000){
+  $('needText').value=resumed;
+  history.replaceState(null,'',location.pathname+'#top');
+ }
+}catch(_e){}
+
 let products=[],compared=[],searchId=0,profile=null,activeNeeds=[];
 function info(t,error=false){msg.textContent=t;msg.dataset.error=error?'true':''}
 function money(v){return v.price==null?'Price not available':new Intl.NumberFormat('en-IE',{style:'currency',currency:v.currency||'EUR'}).format(Number(v.price))}
