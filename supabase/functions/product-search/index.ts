@@ -50,6 +50,60 @@ async function ebay(q:string,max:number|null){
   return !p.title||!url||!Number.isFinite(price)||p.price?.currency!=="EUR"?null:{id:"ebay-"+p.itemId,kind:"external",title:clean(p.title).slice(0,170),description:clean(p.condition),source:"eBay",image:https(p.image?.imageUrl),url,price,currency:"EUR",promoted:false};
  }).filter(Boolean);
 }
+
+/* Optional world-wide discovery: Tavily licensed search API.
+   Search result snippets are suggestions, not independently verified seller prices.
+   We never attach unpaired photos or manufacture costs. */
+function inferNeed(text:string){
+ const minmax=text.match(/(\d[\d\s]{2,5})\s*[-–]\s*(\d[\d\s]{2,5})\s*(?:€|eur|euro)/i);
+ const ceiling=text.match(/(?:alle|enintään|max|under|up to)\s*(\d[\d\s]{2,6})\s*(?:€|eur|euro)?/i);
+ const inches=text.match(/(\d{2}(?:[.,]\d)?)\s*(?:"|″|tuum|inch)/i);
+ const laptop=/läppäri|kannettava|laptop|notebook/i.test(text);
+ let key=text.replace(/\b(?:haluan|ostaa|etsin|tarvitsen|noin|mielellään|hyvä|laadukas|laadukkaan|want|buy|looking for|please)\b/gi," ")
+  .replace(/\d[\d\s]{2,5}\s*[-–]\s*\d[\d\s]{2,5}\s*(€|eur|euro)/gi," ")
+  .replace(/(?:alle|enintään|max|under|up to)\s*\d[\d\s]{2,6}\s*(€|eur|euro)?/gi," ").replace(/\s+/g," ").trim();
+ if(laptop){key="laptop notebook "+(inches?inches[1]+' inch ':'')+' '+key.replace(/läppäri|kannettava|laptop|notebook/gi,"");}
+ const maxPrice=minmax?Number(minmax[2].replace(/\s/g,"")):ceiling?Number(ceiling[1].replace(/\s/g,"")):null;
+ const minPrice=minmax?Number(minmax[1].replace(/\s/g,"")):null;
+ return {key:key.slice(0,110)||text,minPrice,maxPrice,minimumInches:inches?Number(inches[1].replace(',','.')):null};
+}
+function snippetPrice(text:string){
+ // A single unambiguous euro amount in a result snippet; no guessing from ranges.
+ const matches=[...text.matchAll(/(?:€\s*(\d{2,5}(?:[.,]\d{2})?)|(\d{2,5}(?:[.,]\d{2})?)\s*(?:€|EUR)\b)/gi)].map(m=>Number((m[1]||m[2]).replace(',','.'))).filter(n=>Number.isFinite(n)&&n>0);
+ return matches.length===1?matches[0]:null;
+}
+async function webDiscover(original:string):Promise<any[]>{
+ const key=Deno.env.get("TAVILY_API_KEY");
+ if(!key)return [];
+ const need=inferNeed(original);
+ const searchTerm=(need.key+" buy product price € shop").slice(0,200);
+ const r=await fetch("https://api.tavily.com/search",{
+  method:"POST",headers:{"Authorization":"Bearer "+key,"Content-Type":"application/json"},
+  body:JSON.stringify({query:searchTerm,search_depth:"basic",topic:"general",max_results:20,
+   include_answer:false,include_images:false,include_raw_content:false}),
+  signal:AbortSignal.timeout(11000)
+ });
+ if(!r.ok)throw Error("web_search_"+r.status);
+ const data=await r.json();
+ if(!Array.isArray(data.results))return [];
+ const ignore=/wikipedia\.org|youtube\.com|facebook\.com|pinterest\.|reddit\.com|tiktok\.com|instagram\.com|medium\.com|news\.|blog\./i;
+ return data.results.map((r:any,i:number)=>{
+  const url=https(r.url);if(!url)return null;
+  const host=new URL(url).hostname;
+  if(ignore.test(host)||!r.title)return null;
+  const title=clean(r.title).replace(/\s*[|–-]\s*[^|–-]{2,40}$/,"").slice(0,170);
+  const description=clean(r.content).slice(0,300);
+  const price=snippetPrice(description+" "+title);
+  const terms=need.key.toLowerCase().split(/\s+/).filter((t:string)=>t.length>3);
+  if(terms.length&&!terms.some((w:string)=>(title+" "+description).toLowerCase().includes(w)))return null;
+  if(need.maxPrice!==null && price!==null && price>need.maxPrice)return null;
+  if(need.minPrice!==null && price!==null && price<need.minPrice)return null;
+  return {id:"web-"+i+"-"+host,kind:"external",title,description,source:host,
+   image:"",url,price,currency:"EUR",promoted:false,priceStatus:price===null?"not_found":"search_snippet_unverified",
+   checkedAt:new Date().toISOString()};
+ }).filter(Boolean);
+}
+
 Deno.serve(async(req:Request)=>{
  if(req.method==="OPTIONS")return new Response(null,{status:204,headers:HEAD});
  if(req.method!=="POST")return reply({error:"POST required"},405);
@@ -67,13 +121,13 @@ Deno.serve(async(req:Request)=>{
    const batch=await Promise.allSettled(sourceList.slice(i,i+8).map(s=>woo(s,q)));
    results.push(...batch);
   }
-  results.push(...await Promise.allSettled([ebay(q,max)]));
+  results.push(...await Promise.allSettled([ebay(q,max),webDiscover(q)]));
   const all=results.flatMap(x=>x.status==="fulfilled"?x.value:[]);
   const seen=new Set(),products=[];
-  for(const p of all){if(seen.has(p.url)||max!==null&&(p.currency!=="EUR"||p.price>max))continue;seen.add(p.url);products.push(p)}
+  for(const p of all){if(seen.has(p.url)||max!==null&&p.price!==null&&(p.currency!=="EUR"||p.price>max))continue;seen.add(p.url);products.push(p)}
   const terms=q.toLocaleLowerCase().split(/\s+/).filter((w:string)=>w.length>2);
   const rank=(p:any)=>terms.reduce((n:number,t:string)=>n+(String(p.title).toLocaleLowerCase().includes(t)?4:0)+(String(p.description).toLocaleLowerCase().includes(t)?1:0),0);
-  products.sort((a:any,b:any)=>rank(b)-rank(a)||(a.price-b.price));
-  return reply({items:products.slice(0,100),status:"live",sourcesChecked:sourceList.length+(Deno.env.get("EBAY_CLIENT_ID")?1:0),retrievedAt:new Date().toISOString()});
+  products.sort((a:any,b:any)=>rank(b)-rank(a)||((a.price??Infinity)-(b.price??Infinity)));
+  return reply({items:products.slice(0,100),status:"live",sourcesChecked:sourceList.length+(Deno.env.get("EBAY_CLIENT_ID")?1:0)+(Deno.env.get("TAVILY_API_KEY")?1:0),webSearchConfigured:Boolean(Deno.env.get("TAVILY_API_KEY")),retrievedAt:new Date().toISOString()});
  }catch(e){console.error("NEED Global Search:",String(e));return reply({error:"search_unavailable",items:[],status:"unavailable"},503)}
 });
