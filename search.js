@@ -33,7 +33,7 @@ function understandNeed(query){
    .replace(/\b(?:haluan|ostaa|etsin|tarvitsen|noin|hyvän|hyvä|mahdollisimman|jossa|jolla|pitää|olla|minulle|sellaisen|the|buy|want|for|with)\b/gi,' ')
    .replace(/\s+/g,' ').trim();
  const laptop=/läppäri|kannettava|laptop|notebook/i.test(query);
- if(laptop)keywords=keywords.replace(/läppäri|kannettava|notebook/gi,'laptop');
+ if(laptop)keywords=keywords.replace(/läppäri(?:n|ä|a|lle|ssa|stä|ksi)?|kannettava(?:n|a|lle|ssa|sta|ksi)?|notebook/gi,'laptop').replace(/\blaptopn\b/gi,'laptop');
  return {keywords:(keywords||query).slice(0,200),min,max};
 }
 async function fetchProducts(q){
