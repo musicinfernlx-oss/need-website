@@ -1,4 +1,4 @@
-/* NEED V16.9 — category-aware matching for NEED product discovery */
+/* NEED V17.0 — only priced, pictured products across all sources */
 (()=>{'use strict';
 const $=id=>document.getElementById(id);
 const status=$('status'),grid=$('products');
@@ -15,8 +15,9 @@ function price(p){
 function normalize(p,defaultSource){
  if(!p||typeof p.title!=='string')return null;
  const url=secureUrl(p.url||p.product_url),image=secureUrl(p.image||p.image_url);
- if(!url||!p.title.trim())return null;
- return {id:String(p.id||url),title:p.title.trim().slice(0,200),url,image,source:String(p.source||defaultSource||'Store').slice(0,100),price:p.price??null,currency:p.currency||'EUR',promoted:!!p.promoted,category:String(p.category||'').slice(0,120),description:String(p.description||p.summary||''),imageCredit:p.imageCredit||null,catalogOnly:!!p.catalogOnly};
+ const amount=Number(p.price);
+ if(!url||!image||!p.title.trim()||p.price===null||p.price===undefined||p.price===''||!Number.isFinite(amount)||amount<0||!/^[A-Z]{3}$/.test(p.currency||''))return null;
+ return {id:String(p.id||url),title:p.title.trim().slice(0,200),url,image,source:String(p.source||defaultSource||'Store').slice(0,100),price:amount,currency:p.currency,promoted:!!p.promoted,category:String(p.category||'').slice(0,120),description:String(p.description||p.summary||''),imageCredit:p.imageCredit||null,catalogOnly:!!p.catalogOnly};
 }
 function relevance(p,q){const terms=q.toLowerCase().split(/\s+/).filter(x=>x.length>2);if(!terms.length)return 1;const t=(p.title+' '+p.category+' '+p.description).toLowerCase();return terms.reduce((n,w)=>n+(t.includes(w)?1:0),0)}
 function understandNeed(query){
@@ -66,7 +67,7 @@ async function fetchProducts(q){
   items.push(...live.value.data.items.map(p=>normalize({...p,promoted:false},p.source||'Live retailer')).filter(Boolean));
  }
  const unique=[...new Map(items.map(p=>[p.url,p])).values()];
- return {items:unique.map(p=>({...p,score:relevance(p,need.keywords)})).filter(p=>p.score>0).filter(p=>p.price==null||(need.max===null||p.currency!=='EUR'||p.price<=need.max)&&(need.min===null||p.currency!=='EUR'||p.price>=need.min)).sort((a,b)=>(+b.promoted-+a.promoted)||(b.score-a.score)),connected};
+ return {items:unique.map(p=>({...p,score:relevance(p,need.keywords)})).filter(p=>p.score>0).filter(p=>(need.max===null||p.currency!=='EUR'||p.price<=need.max)&&(need.min===null||p.currency!=='EUR'||p.price>=need.min)).sort((a,b)=>(+b.promoted-+a.promoted)||(b.score-a.score)),connected};
 }
 let searchNumber=0;
 async function run(q){
@@ -79,12 +80,12 @@ async function run(q){
   const result=await fetchProducts(q);
   if(ticket!==searchNumber)return;
   if(!result.items.length){
-   status.textContent='No matching NEED products found for this query.';
-   grid.innerHTML='<div class="panel"><h2>No matching offers yet</h2><p>NEED has not found verified products or services for this search. More real sources are being connected.</p></div>';
+   status.textContent='No matching products with both a price and an image were found.';
+   grid.innerHTML='<div class="panel"><h2>No complete product offers yet</h2><p>NEED only displays products with both a price and a product photo. No matching products currently meet these requirements.</p></div>';
    return;
   }
-  status.textContent=result.items.length+' matching products · Store offers open retailer pages; catalog products open information pages';
-  grid.innerHTML=result.items.map(p=>'<article class="product"><a target="_blank" rel="noopener noreferrer" href="'+esc(p.url)+'" aria-label="View '+esc(p.title)+' at '+esc(p.source)+'"><div class="picture">'+(p.image?'<img loading="lazy" src="'+esc(p.image)+'" alt="'+esc(p.title)+'" onerror="this.remove()">':'<span class="missing">Product image unavailable</span>')+'</div><div class="details"><div class="store">'+(p.promoted?'<span class="sponsored">Sponsored</span>':p.catalogOnly?'PRODUCT INFORMATION':'NEED MATCH')+'</div><h2>'+esc(p.title)+'</h2><div class="price">'+esc(p.catalogOnly?'Price not listed':price(p))+'</div><div class="cta">'+(p.catalogOnly?'View product details ↗':'View product ↗')+'</div></div></a>'+(p.image&&p.imageCredit?.image_license&&secureUrl(p.imageCredit?.image_source_url)?'<div class="image-credit"><a target="_blank" rel="noopener noreferrer" href="'+esc(secureUrl(p.imageCredit.image_source_url))+'">Photo: '+esc(p.imageCredit.image_author||'Contributor')+' · '+esc(p.imageCredit.image_license)+(p.catalogOnly?' · Open catalog (not a store)':'')+'</a></div>':'')+'</article>').join('');
+  status.textContent=result.items.length+' matching products with a price and photo · Confirm the latest price with the seller';
+  grid.innerHTML=result.items.map(p=>'<article class="product"><a target="_blank" rel="noopener noreferrer" href="'+esc(p.url)+'" aria-label="View '+esc(p.title)+' at '+esc(p.source)+'"><div class="picture">'+'<img loading="lazy" src="'+esc(p.image)+'" alt="'+esc(p.title)+'" onerror="this.closest(\'article\')?.remove()">'+'</div><div class="details"><div class="store">'+(p.promoted?'<span class="sponsored">Sponsored</span>':p.catalogOnly?'PRODUCT INFORMATION':'NEED MATCH')+'</div><h2>'+esc(p.title)+'</h2><div class="price">'+esc(p.catalogOnly?'Price not listed':price(p))+'</div><div class="cta">'+(p.catalogOnly?'View product details ↗':'View product ↗')+'</div></div></a>'+(p.image&&p.imageCredit?.image_license&&secureUrl(p.imageCredit?.image_source_url)?'<div class="image-credit"><a target="_blank" rel="noopener noreferrer" href="'+esc(secureUrl(p.imageCredit.image_source_url))+'">Photo: '+esc(p.imageCredit.image_author||'Contributor')+' · '+esc(p.imageCredit.image_license)+(p.catalogOnly?' · Open catalog (not a store)':'')+'</a></div>':'')+'</article>').join('');
  }catch(e){if(ticket!==searchNumber)return;status.textContent='One or more NEED sources are unavailable.';note('Search temporarily unavailable','NEED could not retrieve matching offers. Please try again shortly.')}
 }
 if(initial)run(initial);else{status.textContent='Start from the homepage.';note('One search for everything','Use the single search field on the NEED homepage to search for products, services, or experiences.','')}
