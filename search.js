@@ -1,4 +1,4 @@
-/* NEED V17.1 — only priced, pictured products across all sources */
+/* NEED V17.2 — only priced, pictured products across all sources */
 (()=>{'use strict';
 const $=id=>document.getElementById(id);
 const status=$('status'),grid=$('products');
@@ -57,26 +57,33 @@ async function fetchProducts(q){
  const need=understandNeed(q);
  const outcomes=await Promise.allSettled([
   client.from('merchant_products').select('id,title,summary,price,currency,product_url,image_url,seller_profiles!inner(business_name,status,subscription_status)').eq('active',true).eq('seller_profiles.status','approved').limit(200),
-  client.functions.invoke('product-search',{body:{query:q,maxPrice:need.max}}),
   client.rpc('need_index_search',{search_text:need.keywords,max_price:need.max,min_price:need.min,result_limit:80}),
-  client.from('need_search_index').select('item_url,attributes').not('image_url','is',null).limit(500)
+  client.from('need_search_index').select('item_url,attributes').not('image_url','is',null).limit(500),
+  client.from('product_sources').select('id',{count:'exact',head:true}).eq('enabled',true).eq('permission_verified',true)
  ]);
  const merchant=outcomes[0];
  if(merchant.status==='fulfilled'&&!merchant.value.error){
   connected=true;
   items.push(...(merchant.value.data||[]).map(p=>normalize({...p,source:p.seller_profiles?.business_name||'NEED merchant',promoted:p.seller_profiles?.subscription_status==='active'},'NEED merchant')).filter(Boolean));
  }
- const creditRows=outcomes[3]?.status==='fulfilled'&&!outcomes[3].value.error?outcomes[3].value.data||[]:[];
+ const creditRows=outcomes[2]?.status==='fulfilled'&&!outcomes[3].value.error?outcomes[3].value.data||[]:[];
  const creditMap=new Map(creditRows.map(p=>[p.item_url,p.attributes]));
- const indexed=outcomes[2];
+ const indexed=outcomes[1];
  if(indexed.status==='fulfilled'&&!indexed.value.error){
   connected=true;
   items.push(...(indexed.value.data||[]).map(p=>normalize({...p,source:p.source||'Indexed offer',image:p.image,url:p.url,category:p.category,description:p.description,price:p.price,promoted:p.promoted,imageCredit:creditMap.get(p.url)||null,catalogOnly:creditMap.get(p.url)?.catalog_only===true||/^Open (Food|Beauty|Products) Facts$/.test(p.source||'')},'Indexed offer')).filter(Boolean));
  }
- const live=outcomes[1];
- if(live.status==='fulfilled'&&!live.value.error&&Array.isArray(live.value.data?.items)){
-  connected=true;
-  items.push(...live.value.data.items.map(p=>normalize({...p,promoted:false},p.source||'Live retailer')).filter(Boolean));
+ // An indexed search costs no per-query web-search API calls.
+ // Only consult the live retailer endpoint when a verified source exists and index matches are sparse.
+ const sources=outcomes[3];
+ if(items.length<6&&sources?.status==='fulfilled'&&!sources.value.error&&Number(sources.value.count)>0){
+  try{
+   const live=await client.functions.invoke('product-search',{body:{query:need.keywords,maxPrice:need.max}});
+   if(!live.error&&Array.isArray(live.data?.items)){
+    connected=true;
+    items.push(...live.data.items.map(p=>normalize({...p,promoted:false},p.source||'Live retailer')).filter(Boolean));
+   }
+  }catch(_){/* The local index remains available even when external shops fail. */}
  }
  const unique=[...new Map(items.map(p=>[p.url,p])).values()];
  return {items:unique.map(p=>({...p,score:relevance(p,need.keywords)}))
