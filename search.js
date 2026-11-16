@@ -1,4 +1,4 @@
-/* NEED V16.4 — one homepage search backed by NEED full-text index */
+/* NEED V16.6 — one homepage search backed by NEED full-text index */
 (()=>{'use strict';
 const $=id=>document.getElementById(id);
 const status=$('status'),grid=$('products');
@@ -16,7 +16,7 @@ function normalize(p,defaultSource){
  if(!p||typeof p.title!=='string')return null;
  const url=secureUrl(p.url||p.product_url),image=secureUrl(p.image||p.image_url);
  if(!url||!p.title.trim())return null;
- return {id:String(p.id||url),title:p.title.trim().slice(0,200),url,image,source:String(p.source||defaultSource||'Store').slice(0,100),price:p.price??null,currency:p.currency||'EUR',promoted:!!p.promoted,description:String(p.description||p.summary||'')};
+ return {id:String(p.id||url),title:p.title.trim().slice(0,200),url,image,source:String(p.source||defaultSource||'Store').slice(0,100),price:p.price??null,currency:p.currency||'EUR',promoted:!!p.promoted,description:String(p.description||p.summary||''),imageCredit:p.imageCredit||null};
 }
 function relevance(p,q){const terms=q.toLowerCase().split(/\s+/).filter(x=>x.length>2);if(!terms.length)return 1;const t=(p.title+' '+p.description).toLowerCase();return terms.reduce((n,w)=>n+(t.includes(w)?1:0),0)}
 function understandNeed(query){
@@ -45,17 +45,20 @@ async function fetchProducts(q){
  const outcomes=await Promise.allSettled([
   client.from('merchant_products').select('id,title,summary,price,currency,product_url,image_url,seller_profiles!inner(business_name,status,subscription_status)').eq('active',true).eq('seller_profiles.status','approved').limit(200),
   client.functions.invoke('product-search',{body:{query:q,maxPrice:need.max}}),
-  client.rpc('need_index_search',{search_text:need.keywords,max_price:need.max,min_price:need.min,result_limit:80})
+  client.rpc('need_index_search',{search_text:need.keywords,max_price:need.max,min_price:need.min,result_limit:80}),
+  client.from('need_search_index').select('item_url,attributes').not('image_url','is',null).limit(100)
  ]);
  const merchant=outcomes[0];
  if(merchant.status==='fulfilled'&&!merchant.value.error){
   connected=true;
   items.push(...(merchant.value.data||[]).map(p=>normalize({...p,source:p.seller_profiles?.business_name||'NEED merchant',promoted:p.seller_profiles?.subscription_status==='active'},'NEED merchant')).filter(Boolean));
  }
+ const creditRows=outcomes[3]?.status==='fulfilled'&&!outcomes[3].value.error?outcomes[3].value.data||[]:[];
+ const creditMap=new Map(creditRows.map(p=>[p.item_url,p.attributes]));
  const indexed=outcomes[2];
  if(indexed.status==='fulfilled'&&!indexed.value.error){
   connected=true;
-  items.push(...(indexed.value.data||[]).map(p=>normalize({...p,source:p.source||'Indexed offer',image:p.image,url:p.url,description:p.description,price:p.price,promoted:p.promoted},'Indexed offer')).filter(Boolean));
+  items.push(...(indexed.value.data||[]).map(p=>normalize({...p,source:p.source||'Indexed offer',image:p.image,url:p.url,description:p.description,price:p.price,promoted:p.promoted,imageCredit:creditMap.get(p.url)||null},'Indexed offer')).filter(Boolean));
  }
  const live=outcomes[1];
  if(live.status==='fulfilled'&&!live.value.error&&Array.isArray(live.value.data?.items)){
@@ -81,7 +84,7 @@ async function run(q){
    return;
   }
   status.textContent=result.items.length+' verified matching offer'+(result.items.length===1?'':'s')+' · Select an offer to visit its provider';
-  grid.innerHTML=result.items.map(p=>'<article class="product"><a target="_blank" rel="noopener noreferrer" href="'+esc(p.url)+'" aria-label="View '+esc(p.title)+' at '+esc(p.source)+'"><div class="picture">'+(p.image?'<img loading="lazy" src="'+esc(p.image)+'" alt="'+esc(p.title)+'" onerror="this.remove()">':'<span class="missing">Product image unavailable</span>')+'</div><div class="details"><div class="store">'+(p.promoted?'<span class="sponsored">Sponsored</span>':'NEED MATCH')+'</div><h2>'+esc(p.title)+'</h2><div class="price">'+esc(price(p))+'</div><div class="cta">View product ↗</div></div></a></article>').join('');
+  grid.innerHTML=result.items.map(p=>'<article class="product"><a target="_blank" rel="noopener noreferrer" href="'+esc(p.url)+'" aria-label="View '+esc(p.title)+' at '+esc(p.source)+'"><div class="picture">'+(p.image?'<img loading="lazy" src="'+esc(p.image)+'" alt="'+esc(p.title)+'" onerror="this.remove()">':'<span class="missing">Product image unavailable</span>')+'</div><div class="details"><div class="store">'+(p.promoted?'<span class="sponsored">Sponsored</span>':'NEED MATCH')+'</div><h2>'+esc(p.title)+'</h2><div class="price">'+esc(price(p))+'</div><div class="cta">View product ↗</div></div></a>'+(p.image&&p.imageCredit?.image_license&&secureUrl(p.imageCredit?.image_source_url)?'<div class="image-credit"><a target="_blank" rel="noopener noreferrer" href="'+esc(secureUrl(p.imageCredit.image_source_url))+'">Photo: '+esc(p.imageCredit.image_author||'Contributor')+' · '+esc(p.imageCredit.image_license)+'</a></div>':'')+'</article>').join('');
  }catch(e){if(ticket!==searchNumber)return;status.textContent='One or more NEED sources are unavailable.';note('Search temporarily unavailable','NEED could not retrieve matching offers. Please try again shortly.')}
 }
 if(initial)run(initial);else{status.textContent='Start from the homepage.';note('One search for everything','Use the single search field on the NEED homepage to search for products, services, or experiences.','')}
