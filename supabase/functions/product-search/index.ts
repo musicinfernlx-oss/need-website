@@ -13,19 +13,19 @@ async function shops():Promise<Shop[]>{
  url.searchParams.set("select","name,base_url,platform,country");
  url.searchParams.set("enabled","eq.true");
  url.searchParams.set("permission_verified","eq.true");
- url.searchParams.set("limit","8");
+ url.searchParams.set("limit","48");
  const res=await fetch(url,{headers:{apikey:key,Authorization:"Bearer "+key},signal:AbortSignal.timeout(4500)});
  if(!res.ok)throw Error("registry_unavailable");
  const rows=await res.json();
- return Array.isArray(rows)?rows.filter(x=>x.platform==="woocommerce"&&https(x.base_url)).slice(0,8):[];
+ return Array.isArray(rows)?rows.filter(x=>x.platform==="woocommerce"&&https(x.base_url)).slice(0,48):[];
 }
 async function woo(shop:Shop,q:string){
  const base=new URL(shop.base_url);const u=new URL("/wp-json/wc/store/v1/products",base);
- u.searchParams.set("search",q.slice(0,90));u.searchParams.set("per_page","12");
+ u.searchParams.set("search",q.slice(0,90));u.searchParams.set("per_page","24");
  const r=await fetch(u,{headers:{Accept:"application/json"},redirect:"error",signal:AbortSignal.timeout(6500)});
  if(!r.ok||!(r.headers.get("content-type")||"").includes("json"))return [];
  const rows=await r.json();if(!Array.isArray(rows))return [];
- return rows.slice(0,12).map((p:any)=>{
+ return rows.slice(0,24).map((p:any)=>{
   const raw=Number(p.prices?.price),minor=Number(p.prices?.currency_minor_unit),currency=String(p.prices?.currency_code??"");
   const url=https(p.permalink),img=https(p.images?.[0]?.src);
   if(!url||new URL(url).hostname!==base.hostname||!p.name||!Number.isFinite(raw)||!Number.isInteger(minor)||minor<0||minor>4||!/^[A-Z]{3}$/.test(currency))return null;
@@ -61,10 +61,19 @@ Deno.serve(async(req:Request)=>{
  if(max!==null&&(!Number.isFinite(max)||max<=0||max>1000000))return reply({error:"Invalid maxPrice"},400);
  try{
   const sourceList=await shops();
-  const results=await Promise.allSettled([...sourceList.map(s=>woo(s,q)),ebay(q,max)]);
+  // Query in controlled batches to avoid flooding independent retailers.
+  const results:PromiseSettledResult<any[]>[]=[];
+  for(let i=0;i<sourceList.length;i+=8){
+   const batch=await Promise.allSettled(sourceList.slice(i,i+8).map(s=>woo(s,q)));
+   results.push(...batch);
+  }
+  results.push(...await Promise.allSettled([ebay(q,max)]));
   const all=results.flatMap(x=>x.status==="fulfilled"?x.value:[]);
   const seen=new Set(),products=[];
   for(const p of all){if(seen.has(p.url)||max!==null&&(p.currency!=="EUR"||p.price>max))continue;seen.add(p.url);products.push(p)}
-  return reply({items:products.slice(0,80),status:"live",sourcesChecked:sourceList.length+(Deno.env.get("EBAY_CLIENT_ID")?1:0),retrievedAt:new Date().toISOString()});
+  const terms=q.toLocaleLowerCase().split(/\s+/).filter((w:string)=>w.length>2);
+  const rank=(p:any)=>terms.reduce((n:number,t:string)=>n+(String(p.title).toLocaleLowerCase().includes(t)?4:0)+(String(p.description).toLocaleLowerCase().includes(t)?1:0),0);
+  products.sort((a:any,b:any)=>rank(b)-rank(a)||(a.price-b.price));
+  return reply({items:products.slice(0,100),status:"live",sourcesChecked:sourceList.length+(Deno.env.get("EBAY_CLIENT_ID")?1:0),retrievedAt:new Date().toISOString()});
  }catch(e){console.error("NEED Global Search:",String(e));return reply({error:"search_unavailable",items:[],status:"unavailable"},503)}
 });
