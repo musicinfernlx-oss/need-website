@@ -1,4 +1,4 @@
-/* NEED V16.7 — one homepage search backed by NEED full-text index */
+/* NEED V16.8 — category-aware matching for NEED product discovery */
 (()=>{'use strict';
 const $=id=>document.getElementById(id);
 const status=$('status'),grid=$('products');
@@ -16,9 +16,9 @@ function normalize(p,defaultSource){
  if(!p||typeof p.title!=='string')return null;
  const url=secureUrl(p.url||p.product_url),image=secureUrl(p.image||p.image_url);
  if(!url||!p.title.trim())return null;
- return {id:String(p.id||url),title:p.title.trim().slice(0,200),url,image,source:String(p.source||defaultSource||'Store').slice(0,100),price:p.price??null,currency:p.currency||'EUR',promoted:!!p.promoted,description:String(p.description||p.summary||''),imageCredit:p.imageCredit||null,catalogOnly:!!p.catalogOnly};
+ return {id:String(p.id||url),title:p.title.trim().slice(0,200),url,image,source:String(p.source||defaultSource||'Store').slice(0,100),price:p.price??null,currency:p.currency||'EUR',promoted:!!p.promoted,category:String(p.category||'').slice(0,120),description:String(p.description||p.summary||''),imageCredit:p.imageCredit||null,catalogOnly:!!p.catalogOnly};
 }
-function relevance(p,q){const terms=q.toLowerCase().split(/\s+/).filter(x=>x.length>2);if(!terms.length)return 1;const t=(p.title+' '+p.description).toLowerCase();return terms.reduce((n,w)=>n+(t.includes(w)?1:0),0)}
+function relevance(p,q){const terms=q.toLowerCase().split(/\s+/).filter(x=>x.length>2);if(!terms.length)return 1;const t=(p.title+' '+p.category+' '+p.description).toLowerCase();return terms.reduce((n,w)=>n+(t.includes(w)?1:0),0)}
 function understandNeed(query){
  const euroRange=query.match(/(\d[\d\s]{1,6})\s*[-–]\s*(\d[\d\s]{1,6})\s*(?:€|eur|euroa?|eurolla)?/i);
  const maxMatch=query.match(/(?:alle|enintään|korkeintaan|maksimi|max|under)\s*(\d[\d\s]{1,6})\s*(?:€|eur|euroa?)?/i);
@@ -58,7 +58,7 @@ async function fetchProducts(q){
  const indexed=outcomes[2];
  if(indexed.status==='fulfilled'&&!indexed.value.error){
   connected=true;
-  items.push(...(indexed.value.data||[]).map(p=>normalize({...p,source:p.source||'Indexed offer',image:p.image,url:p.url,description:p.description,price:p.price,promoted:p.promoted,imageCredit:creditMap.get(p.url)||null,catalogOnly:creditMap.get(p.url)?.catalog_only===true},'Indexed offer')).filter(Boolean));
+  items.push(...(indexed.value.data||[]).map(p=>normalize({...p,source:p.source||'Indexed offer',image:p.image,url:p.url,category:p.category,description:p.description,price:p.price,promoted:p.promoted,imageCredit:creditMap.get(p.url)||null,catalogOnly:creditMap.get(p.url)?.catalog_only===true},'Indexed offer')).filter(Boolean));
  }
  const live=outcomes[1];
  if(live.status==='fulfilled'&&!live.value.error&&Array.isArray(live.value.data?.items)){
@@ -79,7 +79,7 @@ async function run(q){
   const result=await fetchProducts(q);
   if(ticket!==searchNumber)return;
   if(!result.items.length){
-   status.textContent='No verified listings found for your NEED yet.';
+   status.textContent='No matching NEED products found for this query.';
    grid.innerHTML='<div class="panel"><h2>No matching offers yet</h2><p>NEED has not found verified products or services for this search. More real sources are being connected.</p></div>';
    return;
   }
