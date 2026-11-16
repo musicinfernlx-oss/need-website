@@ -1,4 +1,4 @@
-/* NEED V16.8 — category-aware matching for NEED product discovery */
+/* NEED V16.9 — category-aware matching for NEED product discovery */
 (()=>{'use strict';
 const $=id=>document.getElementById(id);
 const status=$('status'),grid=$('products');
@@ -58,7 +58,7 @@ async function fetchProducts(q){
  const indexed=outcomes[2];
  if(indexed.status==='fulfilled'&&!indexed.value.error){
   connected=true;
-  items.push(...(indexed.value.data||[]).map(p=>normalize({...p,source:p.source||'Indexed offer',image:p.image,url:p.url,category:p.category,description:p.description,price:p.price,promoted:p.promoted,imageCredit:creditMap.get(p.url)||null,catalogOnly:creditMap.get(p.url)?.catalog_only===true},'Indexed offer')).filter(Boolean));
+  items.push(...(indexed.value.data||[]).map(p=>normalize({...p,source:p.source||'Indexed offer',image:p.image,url:p.url,category:p.category,description:p.description,price:p.price,promoted:p.promoted,imageCredit:creditMap.get(p.url)||null,catalogOnly:creditMap.get(p.url)?.catalog_only===true||/^Open (Food|Beauty|Products) Facts$/.test(p.source||'')},'Indexed offer')).filter(Boolean));
  }
  const live=outcomes[1];
  if(live.status==='fulfilled'&&!live.value.error&&Array.isArray(live.value.data?.items)){
