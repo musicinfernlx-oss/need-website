@@ -136,9 +136,19 @@ async function search(){
  }catch(e){if(ticket!==searchId)return;info('Catalog search unavailable. External shopping links remain available.',true)}
  finally{clearTimeout(timer)}
 }
-$('v13Find').addEventListener('click',search);
+/* NEED V16.1: one home search opens its own dedicated results tab. */
+function openSearchTab(){
+ const q=$('needText').value.trim();
+ if(q.length<2){$('needText').focus();return}
+ const destination=new URL('search.html',location.href);
+ destination.searchParams.set('q',q);
+ const tab=window.open(destination.href,'_blank');
+ if(tab)tab.opener=null;
+ else location.assign(destination.href);
+}
+$('v13Find').addEventListener('click',openSearchTab);
 $('needText').addEventListener('keydown',e=>{
- if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();search()}
+ if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();openSearchTab()}
 });
 $('v15Guide').addEventListener('click',()=>{
  const text=$('needText').value.trim();
