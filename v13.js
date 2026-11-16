@@ -13,6 +13,7 @@ function external(q){
  const query=encodeURIComponent(q);
  const sources=[
   ['Google Shopping','Search merchants and current offers','https://www.google.com/search?tbm=shop&q='+query],
+  ['Verkkokauppa.com','Find current products on Verkkokauppa.com','https://www.verkkokauppa.com/fi/search?query='+query],
   ['eBay','Search independent marketplace listings','https://www.ebay.com/sch/i.html?_nkw='+query],
   ['Etsy','Explore handmade and unique finds','https://www.etsy.com/search?q='+query]
  ];
