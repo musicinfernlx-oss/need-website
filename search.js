@@ -1,4 +1,4 @@
-/* NEED V17.0 — only priced, pictured products across all sources */
+/* NEED V17.1 — only priced, pictured products across all sources */
 (()=>{'use strict';
 const $=id=>document.getElementById(id);
 const status=$('status'),grid=$('products');
@@ -21,22 +21,34 @@ function normalize(p,defaultSource){
 }
 function relevance(p,q){const terms=q.toLowerCase().split(/\s+/).filter(x=>x.length>2);if(!terms.length)return 1;const t=(p.title+' '+p.category+' '+p.description).toLowerCase();return terms.reduce((n,w)=>n+(t.includes(w)?1:0),0)}
 function understandNeed(query){
- const euroRange=query.match(/(\d[\d\s]{1,6})\s*[-–]\s*(\d[\d\s]{1,6})\s*(?:€|eur|euroa?|eurolla)?/i);
- const maxMatch=query.match(/(?:alle|enintään|korkeintaan|maksimi|max|under)\s*(\d[\d\s]{1,6})\s*(?:€|eur|euroa?)?/i);
- let min=null,max=null;
- if(euroRange){min=Number(euroRange[1].replace(/\s/g,''));max=Number(euroRange[2].replace(/\s/g,''))}
- else if(maxMatch){max=Number(maxMatch[1].replace(/\s/g,''))}
+ const range=query.match(/(\d{1,6})\s*[-–]\s*(\d{1,6})\s*(?:€|eur|euroa?|eurolla)/i);
+ const ceiling=query.match(/(?:alle|enintään|korkeintaan|maksimi|max|under|up to)\s*(\d{1,6})\s*(?:€|eur|euroa?)?/i);
+ const inch=query.match(/(\d{2}(?:[.,]\d+)?)\s*(?:["″]|tuum\w*|inch(?:es)?)/i);
+ const laptop=/läppäri|kannettav|laptop|notebook/i.test(query);
+ let min=range?Number(range[1]):null,max=range?Number(range[2]):ceiling?Number(ceiling[1]):null;
  if(min!==null&&(!Number.isFinite(min)||min<0))min=null;
  if(max!==null&&(!Number.isFinite(max)||max<0))max=null;
+ if(min!==null&&max!==null&&min>max)[min,max]=[max,min];
  let keywords=query
-   .replace(/\d[\d\s]{1,6}\s*[-–]\s*\d[\d\s]{1,6}\s*(?:€|eur|euroa?|eurolla)?/gi,' ')
-   .replace(/(?:alle|enintään|korkeintaan|maksimi|max|under)\s*\d[\d\s]{1,6}\s*(?:€|eur|euroa?)?/gi,' ')
-   .replace(/\b(?:haluan|ostaa|etsin|tarvitsen|noin|hyvän|hyvä|mahdollisimman|jossa|jolla|pitää|olla|minulle|sellaisen|the|buy|want|for|with)\b/gi,' ')
+   .replace(/\d{1,6}\s*[-–]\s*\d{1,6}\s*(?:€|eur|euroa?|eurolla)/gi,' ')
+   .replace(/(?:alle|enintään|korkeintaan|maksimi|max|under|up to)\s*\d{1,6}\s*(?:€|eur|euroa?)?/gi,' ')
+   .replace(/\d{2}(?:[.,]\d+)?\s*(?:["″]|tuum\w*|inch(?:es)?)/gi,' ')
+   .replace(/\b(?:haluan|ostaa|etsin|tarvitsen|noin|hyvän|hyvä|mahdollisimman|jossa|jolla|pitää|olla|minulle|sellaisen|hintaan|hinta|saisi|olla|the|buy|want|for|with|around)\b/gi,' ')
    .replace(/\s+/g,' ').trim();
- const laptop=/läppäri|kannettava|laptop|notebook/i.test(query);
- if(laptop)keywords=keywords.replace(/läppäri(?:n|ä|a|lle|ssa|stä|ksi)?|kannettava(?:n|a|lle|ssa|sta|ksi)?|notebook/gi,'laptop').replace(/\blaptopn\b/gi,'laptop');
- return {keywords:(keywords||query).slice(0,200),min,max};
+ if(laptop)keywords=keywords.replace(/läppäri\w*|kannettav\w*|notebook\w*/gi,'laptop');
+ return {keywords:(keywords||query).slice(0,200),min,max,laptop,inches:inch?Number(inch[1].replace(',','.')):null};
 }
+function matchesRequiredSpecs(p,need){
+ const text=(p.title+' '+p.category+' '+p.description).toLowerCase();
+ if(need.laptop&&!/laptop|notebook|kannettav|vivobook|ideapad|thinkpad|aspire|cyborg/.test(text))return false;
+ if(need.inches!==null){
+  const matches=[...text.matchAll(/(\d{2}(?:[.,]\d+)?)\s*(?:["″]|tuum\w*|inch(?:es)?)/gi)]
+   .map(m=>Number(m[1].replace(',','.')));
+  if(!matches.some(n=>Math.abs(n-need.inches)<=0.7))return false;
+ }
+ return true;
+}
+
 async function fetchProducts(q){
  const cfg=window.NEED_SUPABASE_CONFIG;
  if(!cfg?.url||!cfg?.anonKey||!window.supabase)return {items:[],connected:false};
@@ -67,7 +79,10 @@ async function fetchProducts(q){
   items.push(...live.value.data.items.map(p=>normalize({...p,promoted:false},p.source||'Live retailer')).filter(Boolean));
  }
  const unique=[...new Map(items.map(p=>[p.url,p])).values()];
- return {items:unique.map(p=>({...p,score:relevance(p,need.keywords)})).filter(p=>p.score>0).filter(p=>(need.max===null||p.currency!=='EUR'||p.price<=need.max)&&(need.min===null||p.currency!=='EUR'||p.price>=need.min)).sort((a,b)=>(+b.promoted-+a.promoted)||(b.score-a.score)),connected};
+ return {items:unique.map(p=>({...p,score:relevance(p,need.keywords)}))
+  .filter(p=>p.score>0&&matchesRequiredSpecs(p,need))
+  .filter(p=>(need.max===null&&need.min===null)||(p.currency==='EUR'&&(need.max===null||p.price<=need.max)&&(need.min===null||p.price>=need.min)))
+  .sort((a,b)=>(+b.promoted-+a.promoted)||(b.score-a.score)),connected};
 }
 let searchNumber=0;
 async function run(q){
