@@ -1,4 +1,4 @@
-/* NEED Search V16.1 — standalone results, real listings only */
+/* NEED V16.3 — single homepage search, results only */
 (()=>{'use strict';
 const $=id=>document.getElementById(id);
 const status=$('status'),grid=$('products');
@@ -6,16 +6,7 @@ const params=new URLSearchParams(location.search),initial=(params.get('q')||'').
 $('queryLabel').textContent=initial?'You searched for: “'+initial+'”':'No search entered';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function secureUrl(value){try{const url=new URL(value);return url.protocol==='https:'?url.href:''}catch{return ''}}
-const stores=[
- ['Verkkokauppa.com',q=>'https://www.verkkokauppa.com/fi/search?query='+encodeURIComponent(q)],
- ['Google Shopping',q=>'https://www.google.com/search?tbm=shop&q='+encodeURIComponent(q)],
- ['eBay',q=>'https://www.ebay.com/sch/i.html?_nkw='+encodeURIComponent(q)],
- ['Etsy',q=>'https://www.etsy.com/search?q='+encodeURIComponent(q)]
-];
-function alternatives(q){return '<div class="shops">'+stores.map(([name,url])=>'<a href="'+esc(url(q))+'" target="_blank" rel="noopener noreferrer">Search '+esc(name)+' ↗</a>').join('')+'</div>'}
-function note(title,message,q){
- grid.innerHTML='<div class="panel"><h2>'+esc(title)+'</h2><p>'+esc(message)+'</p>'+(q?alternatives(q):'')+'</div>';
-}
+function note(title,message){grid.innerHTML='<div class="panel"><h2>'+esc(title)+'</h2><p>'+esc(message)+'</p></div>';}
 function price(p){
  const value=Number(p.price);
  if(p.price===null||p.price===undefined||p.price===''||!Number.isFinite(value)||value<0)return 'Price not provided';
@@ -62,12 +53,12 @@ async function run(q){
   if(ticket!==searchNumber)return;
   if(!result.items.length){
    status.textContent='No verified listings found for your NEED yet.';
-   grid.innerHTML='<div class="panel"><h2>No matching verified offers yet</h2><p>NEED searches its connected sources using your original request. Products, local services, experiences and seller offers will all appear here when corresponding sources are available. No fake prices or invented offers are shown.</p><a class="request-link" href="./index.html?need='+encodeURIComponent(q)+'#top">Continue this NEED ↗</a><p class="small">Additional public store links are provided below as a fallback while integrations are being activated.</p>'+alternatives(q)+'</div>';
+   grid.innerHTML='<div class="panel"><h2>No matching offers yet</h2><p>NEED has not found verified products or services for this search. More real sources are being connected.</p></div>';
    return;
   }
   status.textContent=result.items.length+' verified matching offer'+(result.items.length===1?'':'s')+' · Select an offer to visit its provider';
-  grid.innerHTML=result.items.map(p=>'<article class="product"><a target="_blank" rel="noopener noreferrer" href="'+esc(p.url)+'" aria-label="View '+esc(p.title)+' at '+esc(p.source)+'"><div class="picture">'+(p.image?'<img loading="lazy" src="'+esc(p.image)+'" alt="'+esc(p.title)+'" onerror="this.remove()">':'<span class="missing">Product image unavailable</span>')+'</div><div class="details"><div class="store">'+esc(p.source)+(p.promoted?'<span class="sponsored">Sponsored</span>':'')+'</div><h2>'+esc(p.title)+'</h2><div class="price">'+esc(price(p))+'</div><div class="cta">View product ↗</div></div></a></article>').join('');
- }catch(e){if(ticket!==searchNumber)return;status.textContent='One or more NEED sources are unavailable.';note('Search is temporarily unavailable','You can still open the store searches below.',q)}
+  grid.innerHTML=result.items.map(p=>'<article class="product"><a target="_blank" rel="noopener noreferrer" href="'+esc(p.url)+'" aria-label="View '+esc(p.title)+' at '+esc(p.source)+'"><div class="picture">'+(p.image?'<img loading="lazy" src="'+esc(p.image)+'" alt="'+esc(p.title)+'" onerror="this.remove()">':'<span class="missing">Product image unavailable</span>')+'</div><div class="details"><div class="store">'+(p.promoted?'<span class="sponsored">Sponsored</span>':'NEED MATCH')+'</div><h2>'+esc(p.title)+'</h2><div class="price">'+esc(price(p))+'</div><div class="cta">View product ↗</div></div></a></article>').join('');
+ }catch(e){if(ticket!==searchNumber)return;status.textContent='One or more NEED sources are unavailable.';note('Search temporarily unavailable','NEED could not retrieve matching offers. Please try again shortly.')}
 }
 if(initial)run(initial);else{status.textContent='Start from the homepage.';note('One search for everything','Use the single search field on the NEED homepage to search for products, services, or experiences.','')}
 })();
